@@ -1,16 +1,20 @@
 ﻿@page "/category"
-@using AvinaShop.Data
-@using AvinaShop.Repository.IRepository
-@using AvinaShop.Services.Extensions
-@inject ICategoryRepository _categoryRepository
-@inject IJSRuntime _JS
+@using AvinaShop.Data  <!-- Access to data models, e.g., Category -->
+@using AvinaShop.Repository.IRepository <!-- Access to the repository interface for data operations -->
+@using AvinaShop.Services.Extensions <!-- JSRuntime extensions for UI interactions -->
+<!-- Inject category repository for data fetching and manipulation -->
+@inject ICategoryRepository _categoryRepository 
+<!-- Inject JavaScript runtime for client-side interaction -->
+@inject IJSRuntime _JS 
 
+<!-- Delete Confirmation Modal -->
 <BsModal OnModalConfirmation="ConfirmDelete_Click"
-        ButtonBootstrapStyle="btn-danger"
-        ButtonText="Delete"
-        Title="Are you sure you want to delete this Category?">
+         ButtonBootstrapStyle="btn-danger"
+         ButtonText="Delete"
+         Title="Are you sure you want to delete this Category?">
 </BsModal>
 
+<!-- Show loading spinner while data is being fetched -->
 @if (IsProcessing)
 {
     <div class="position-absolute w-75 h-75 d-flex flex-column align-items-center bg-white justify-content-center">
@@ -19,6 +23,7 @@
 }
 else
 {
+    <!-- Main content for displaying category list -->
     <div class="card shadow border-0 m-4">
         <div class="card-header bg-black bg-gradient ml-0 py-3">
             <div class="row">
@@ -29,12 +34,14 @@ else
         </div>
         <div class="card-body p-4">
             <div class="row pb-3">
+                <!-- Button to add a new category -->
                 <div class="col-12 text-end">
                     <a href="category/create" class="btn btn-lg btn-secondary" style="width:250px;">
                         <i class="bi bi-plus-square"></i> Add New Category
                     </a>
                 </div>
             </div>
+            <!-- Check if there are categories to display -->
             @if (Categories.Any())
             {
                 <table class="table table-bordered table-striped">
@@ -52,10 +59,12 @@ else
                                     @obj.Name
                                 </td>
                                 <td>
+                                    <!-- Edit Button: Redirects to update page -->
                                     <a href="@($"category/update/{obj.Id}")" class="btn btn-primary">
                                         <i class="bi bi-pencil-square"></i> Edit
                                     </a>
-                                    <button class="btn btn-danger" @onclick="()=>HandleDelete(obj.Id)">
+                                    <!-- Delete Button: Triggers delete confirmation -->
+                                    <button class="btn btn-danger" @onclick="() => HandleDelete(obj.Id)">
                                         <i class="bi bi-trash3"></i> Delete
                                     </button>
                                 </td>
@@ -69,14 +78,16 @@ else
 }
 
 @code {
-    private bool IsProcessing { get; set; } = true;
-    private IEnumerable<Category> Categories { get; set; } = new List<Category>();
-    private int DeleteCategoryID { get; set; } = 0;
+    private bool IsProcessing { get; set; } = true; // Flag to show loading spinner
+    private IEnumerable<Category> Categories { get; set; } = new List<Category>(); //List of categories to display
+    private int DeleteCategoryID { get; set; } = 0; //Stores the ID of the category to be deleted
+    
+    // Lifecycle method for initialization (called once on first load)
     protected override async Task OnInitializedAsync()
     {
 
     }
-
+    // Lifecycle method for data loading after component has rendered
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -87,35 +98,36 @@ else
         }
         //return base.OnAfterRenderAsync(firstRender);
     }
-
+    // Load categories from the repository
     private async Task LoadCategories()
     {
-        Categories= await _categoryRepository.GetAllAsync();
+        Categories= await _categoryRepository.GetAllAsync(); //Fetch all categories
         // Load categories
     }
-
+    // Handle delete action: set category ID and show confirmation modal
     private void HandleDelete(int id)
     {
-        DeleteCategoryID = id;
-        _JS.InvokeVoidAsync("ShowConfirmationModal");
+        DeleteCategoryID = id; //Store category ID for deletion
+        _JS.InvokeVoidAsync("ShowConfirmationModal"); //Call JavaScript function to show modal
     }
-
+    // Confirm or cancel delete action based on user confirmation
     private async Task ConfirmDelete_Click(bool isConfirmed)
     {
         IsProcessing = true;
-        await _JS.InvokeVoidAsync("HideConfirmationModal");
+        await _JS.InvokeVoidAsync("HideConfirmationModal"); // Hide the confirmation modal
+
         if(isConfirmed && DeleteCategoryID != 0)
         {
-            var result = await _categoryRepository.DeleteAsync(DeleteCategoryID);
+            var result = await _categoryRepository.DeleteAsync(DeleteCategoryID); //Call repository to delete category
             if(result)
-                _JS?.ToastrSuccess("Category Delete Successfully");
+                _JS?.ToastrSuccess("Category Delete Successfully"); //Show success notification
             else
-                _JS?.ToastrError("Error Encountered while deleting");
+                _JS?.ToastrError("Error Encountered while deleting"); //Show error notification
 
-            await LoadCategories();
+            await LoadCategories(); //Reload categories after delete operation
         }
-        
-        DeleteCategoryID = 0;
-        IsProcessing = false;
+
+        DeleteCategoryID = 0; // Reset delete category ID
+        IsProcessing = false; // Hide loading spinner
     }
 }

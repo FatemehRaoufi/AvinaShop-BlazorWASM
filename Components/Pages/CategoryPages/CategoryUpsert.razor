@@ -1,11 +1,17 @@
 ﻿@page "/category/create"
-@page "/category/update/{id:int}"
-@using AvinaShop.Data
-@using AvinaShop.Repository.IRepository
-@using AvinaShop.Services.Extensions
+@page "/category/update/{id:int}" 
+
+@using AvinaShop.Data <!-- Import data models -->
+@using AvinaShop.Repository.IRepository <!-- Import repository interface -->
+@using AvinaShop.Services.Extensions <!-- JSRuntime extension methods -->
+<!-- Inject category repository -->
 @inject ICategoryRepository _categoryRepository
+<!-- Inject navigation manager for redirect -->
 @inject NavigationManager _navigationManager
+<!-- Inject JSRuntime for toast messages -->
 @inject IJSRuntime _JS
+
+<!-- Show loading spinner while processing -->
 @if (IsProcessing)
 {
     <div class="position-absolute w-75 h-75 d-flex flex-column align-items-center bg-white justify-content-center">
@@ -14,6 +20,7 @@
 }
 else
 {
+    <!-- Main form container -->
     <div class="card shadow border-0 m-4">
         <div class="card-header bg-black bg-gradient ml-0 py-3">
             <div class="row">
@@ -23,21 +30,25 @@ else
             </div>
         </div>
         <div class="card-body p-4">
+            <!-- Form for creating/updating a category -->
             <EditForm Model="Category" FormName="CategoryUpsertForm" OnValidSubmit="UpsertCategory">
                 <DataAnnotationsValidator/>
-                
+                <!-- Category Name Input -->
                 <div class="border p-3 mt-4">
                     <div class="form-floating py-3 col-12">
-                        <InputText @bind-Value="Category.Name" class="form-control" id="Name" placeholder="Name" />
+                        <InputText @bind-Value="Category.Name" class="form-control" id="Name" placeholder="Name"/>
                         <label for="Name">Name</label>
-                        <ValidationMessage For="@(() => Category.Name)" />
+                        <ValidationMessage For="@(() => Category.Name)"/>
                     </div>
+                    <!-- Action buttons -->
                     <div class="row mt-3">
                         <div class="col-6 col-md-3">
+                            <!-- Submit button (Create/Update) -->
                             <button type="submit" class="btn btn-primary form-control" disabled="@IsProcessing">
                                 <i class="bi bi-floppy2-fill"></i> @(Id == 0 ? "Create" : "Update")
                             </button>
                         </div>
+                        <!-- Navigate back to category list -->
                         <div class="col-6 col-md-3">
                             <a href="category" class="btn btn-secondary form-control" disabled="@IsProcessing">
                                 <i class="bi bi-arrow-bar-left"></i> Back to List
@@ -45,9 +56,9 @@ else
                         </div>
                     </div>
                 </div>
-                
+
             </EditForm>
-            
+
         </div>
     </div>
 }
@@ -55,24 +66,26 @@ else
 
 @code {
     [Parameter]
-    public int Id { get; set; }
+    public int Id { get; set; } //Category ID from URL (0 if creating)
 
     [SupplyParameterFromForm]
-    private Category Category { get; set; } = new Category();
+    private Category Category { get; set; } = new Category(); //Bound model for form
 
-    private bool IsProcessing { get; set; } = true;
-
+    private bool IsProcessing { get; set; } = true; //Controls loading spinner and disables form
+    
+    // Load category details if updating
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await LoadCategory();
             IsProcessing = false;
-            StateHasChanged();
+            StateHasChanged(); // Re-render component
         }
         //return base.OnAfterRenderAsync(firstRender);
     }
 
+    // Load category for editing
     private async Task LoadCategory()
     {
         if (Id > 0)
@@ -81,18 +94,19 @@ else
         }
     }
 
+    // Submit handler for create or update
     private async Task UpsertCategory()
     {
         IsProcessing = true;
         if (Category.Id == 0)
         {
-            //create
+            // Create
             await _categoryRepository.CreateAsync(Category);
             await _JS.ToastrSuccess("Category Created Successfully");
         }
         else
         {
-            //update
+            //Update
             await _categoryRepository.UpdateAsync(Category);
             await _JS.ToastrSuccess("Category Updated Successfully");
         }
