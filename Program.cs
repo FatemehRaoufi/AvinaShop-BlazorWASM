@@ -3,6 +3,7 @@ using AvinaShop.Components.Account;
 using AvinaShop.Data;
 using AvinaShop.Repository;
 using AvinaShop.Repository.IRepository;
+using AvinaShop.Services.UserServices;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,15 @@ builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuth
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
+#region RoleManagement Injection
+
+// Dependency Inversion Principle (DIP)
+// We use dependency injection to inject the UserRoleService into the UserRoleService, following the DIP principle and ensuring that 
+// high-level modules depend on abstractions (IUserRoleService) rather than concrete implementations.
+builder.Services.AddScoped<IUserRoleService, UserRoleService>();
+
+
+#endregion
 
 // Configure authentication schemes and use Identity cookies
 builder.Services.AddAuthentication(options =>

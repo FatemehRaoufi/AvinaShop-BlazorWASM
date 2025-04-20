@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
 @using AvinaShop.Data
+@using AvinaShop.Services.UserServices
 @using AvinaShop.Utility
 @using AvinaShop.ViewModels.Account
 
@@ -17,6 +18,9 @@
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+<!-- Injecting the UserRolService -->
+@inject IUserRoleService UserRoleService
+
 
 <PageTitle>Register</PageTitle>
 
@@ -102,25 +106,39 @@
         }
 
         Logger.LogInformation("User created a new account with password.");
+
+        #region Role Management
+       
+        /*
+         ** HAD BEEN REMOVED**
+          // Create roles if they don't already exist
+           if (!await RoleManager.RoleExistsAsync(AppConstants.Role_Customer))
+             {
+             // Create admin and customer roles if they do not already exist
+                 await RoleManager.CreateAsync(new IdentityRole(AppConstants.Role_Admin));
+                 await RoleManager.CreateAsync(new IdentityRole(AppConstants.Role_Customer));
+             }
+
+             if(Input.Role is not null)
+             {
+                 await UserManager.AddToRoleAsync(user, Input.Role);
+             }
+             else
+             {
+                 await UserManager.AddToRoleAsync(user, AppConstants.Role_Customer);
+             }
+           */
+
+        //** Use the new service for role assignment and creation**
         
-        // Create roles if they don't already exist
-        if (!await RoleManager.RoleExistsAsync(AppConstants.Role_Customer))
-        {
-            // Create admin and customer roles if they do not already exist
-            await RoleManager.CreateAsync(new IdentityRole(AppConstants.Role_Admin));
-            await RoleManager.CreateAsync(new IdentityRole(AppConstants.Role_Customer));
-        }
+        //Using the IRoleService to ensure that roles exist
 
-        // Assign selected or default role
-        if(Input.Role is not null)
-        {
-            await UserManager.AddToRoleAsync(user, Input.Role);
-        }
-        else
-        {
-            await UserManager.AddToRoleAsync(user, AppConstants.Role_Customer);
-        }
+        await UserRoleService.EnsureRolesExistAsync(); //Ensuring roles exist before assigning
+        await UserRoleService.AssignRoleToUserAsync(user, Input.Role);// Assign selected or default role
 
+        #endregion Role Management
+
+        #region ConfirmEmail
         // Generate email confirmation link
         var userId = await UserManager.GetUserIdAsync(user);
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
@@ -138,7 +156,8 @@
                 "Account/RegisterConfirmation",
                 new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
         }
-
+        #endregion ConfirmEmail
+        
         // Sign in and redirect
         await SignInManager.SignInAsync(user, isPersistent: false);
         RedirectManager.RedirectTo(ReturnUrl);
