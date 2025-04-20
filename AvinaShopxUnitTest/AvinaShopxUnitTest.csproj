@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="RepositoryTests\CategoryRepositoryTests.cs" />
+    <Compile Include="RepositoryTests\ProductRepositoryTests.cs" />
+    <Compile Include="ValidationTests\ProductValidationTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="obj\AvinaShopxUnitTest.csproj.nuget.dgspec.json" />
+    <Content Include="obj\project.assets.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="bin\Debug\net9.0\.msCoverageSourceRootsMapping_AvinaShopxUnitTest" />
+    <None Include="bin\Debug\net9.0\CoverletSourceRootsMapping_AvinaShopxUnitTest" />
+    <None Include="obj\AvinaShopxUnitTest.csproj.nuget.g.props" />
+    <None Include="obj\AvinaShopxUnitTest.csproj.nuget.g.targets" />
+    <None Include="obj\project.nuget.cache" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="FluentAssertions" Version="8.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AvinaShop\AvinaShop.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
