@@ -1,6 +1,7 @@
 ﻿using AvinaShop.Data;
 using AvinaShop.Repository.IRepository;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 
 namespace AvinaShop.Repository
 {
@@ -8,64 +9,84 @@ namespace AvinaShop.Repository
     {
         private readonly ApplicationDbContext _db;
         private readonly IWebHostEnvironment _webHostEnvironment;
+
+        // Constructor to initialize the dependencies: Database context and WebHost environment
         public ProductRepository(ApplicationDbContext db, IWebHostEnvironment webHostEnvironment)
         {
             _db = db;
             _webHostEnvironment = webHostEnvironment;
         }
-        public async Task<Product> CreateAsync(Product obj)
+
+        // Creates a new product in the database
+        public async Task<Product> CreateAsync(Product product)
         {
-            await _db.Product.AddAsync(obj);
+            await _db.Product.AddAsync(product);
             await _db.SaveChangesAsync();
-            return obj;
+            return product;
         }
 
+        // Deletes a product by its ID, and removes the associated image from the server
         public async Task<bool> DeleteAsync(int id)
         {
-            var obj = await _db.Product.FirstOrDefaultAsync(u => u.Id == id);
-            var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, obj.ImageUrl.TrimStart('/'));
-            if (File.Exists(imagePath))
+            // Find the product by ID
+            var product = await _db.Product.FirstOrDefaultAsync(p => p.Id == id);
+
+            // If product is found, delete the associated image from the server
+            if (product != null)
             {
-                File.Delete(imagePath);
+                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, product.ImageUrl.TrimStart('/'));
+                if (File.Exists(imagePath))
+                {
+                    File.Delete(imagePath); // Delete the product image
+                }
+
+                // Remove the product from the database
+                _db.Product.Remove(product);
+                return await _db.SaveChangesAsync() > 0; // Return true if the product is deleted
             }
-            if (obj != null)
-            {
-                _db.Product.Remove(obj);
-                return (await _db.SaveChangesAsync()) > 0;
-            }
+
+            // Return false if no product is found with the given ID
             return false;
         }
 
+        // Retrieves a product by its ID
         public async Task<Product> GetAsync(int id)
         {
-            var obj = await _db.Product.FirstOrDefaultAsync(u => u.Id == id);
-            if (obj == null)
-            {
-                return new Product();
-            }
-            return obj;
+            var product = await _db.Product.FirstOrDefaultAsync(p => p.Id == id);
+
+            // If no product is found, return a new product
+            return product ?? new Product();
         }
 
+        // Retrieves all products, including their related categories
         public async Task<IEnumerable<Product>> GetAllAsync()
         {
-            return await _db.Product.Include(u => u.Category).ToListAsync();
+            return await _db.Product.Include(p => p.Category).ToListAsync();
         }
 
-        public async Task<Product> UpdateAsync(Product obj)
+        // Updates an existing product in the database
+        public async Task<Product> UpdateAsync(Product product)
         {
-            var objFromDb = await _db.Product.FirstOrDefaultAsync(u => u.Id == obj.Id);
-            if (objFromDb is not null)
+            // Find the product by ID
+            var productFromDb = await _db.Product.FirstOrDefaultAsync(p => p.Id == product.Id);
+
+            // If the product exists in the database, update its properties
+            if (productFromDb != null)
             {
-                objFromDb.Name = obj.Name;
-                objFromDb.Description = obj.Description;
-                objFromDb.ImageUrl = obj.ImageUrl;
-                objFromDb.CategoryId = obj.CategoryId;
-                objFromDb.Price = obj.Price;
-                _db.Product.Update(objFromDb);
+                productFromDb.Name = product.Name;
+                productFromDb.Description = product.Description;
+                productFromDb.ImageUrl = product.ImageUrl;
+                productFromDb.CategoryId = product.CategoryId;
+                productFromDb.Price = product.Price;
+
+                // Update the product in the database
+                _db.Product.Update(productFromDb);
                 await _db.SaveChangesAsync();
-                return objFromDb;
+                return productFromDb;
             }
-            return obj;
+
+            // Return the original product if no matching product is found
+            return product;
         }
     }
 }
