@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35507.96 d17.13
+VisualStudioVersion = 17.13.35507.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AvinaShop", "AvinaShop.csproj", "{B753A0C2-2177-4268-AAA4-3250D54E4590}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AvinaShopxUnitTest", "..\AvinaShopxUnitTest\AvinaShopxUnitTest.csproj", "{95E58EE7-A3FA-CB25-B44C-A7A761F6DFBA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{B753A0C2-2177-4268-AAA4-3250D54E4590}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B753A0C2-2177-4268-AAA4-3250D54E4590}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B753A0C2-2177-4268-AAA4-3250D54E4590}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95E58EE7-A3FA-CB25-B44C-A7A761F6DFBA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95E58EE7-A3FA-CB25-B44C-A7A761F6DFBA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95E58EE7-A3FA-CB25-B44C-A7A761F6DFBA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95E58EE7-A3FA-CB25-B44C-A7A761F6DFBA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
