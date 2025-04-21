@@ -1,0 +1,67 @@
+﻿
+@using System.Globalization
+
+<!-- UI component to display a single cart item with quantity controls -->
+<div class="d-flex p-2 m-2">
+    <div class="card flex-row w-100">
+        <!-- Product image -->
+        <img class="card-img-left" style="width: 120px;" src="@ImageUrl">
+
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <!-- Product name and unit price -->
+                <h4>@ProductName</h4>
+                <h4>@Price</h4>
+            </div>
+
+            <!-- Total price for this item (price * quantity) -->
+            <div class="flex-fill">
+                <h4 class="text-danger">@TotalPrice</h4>
+            </div>
+
+            <!-- Quantity controls and remove button -->
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between g-0">
+                    <!-- Decrease quantity -->
+                    <span @onclick="() => OnUpdate.InvokeAsync((ProductId, -1))">
+                        <i class="bi bi-dash-circle-fill btn text-secondary"></i>
+                    </span>
+
+                    <span class="ml-1 me-1">
+                        <b class="lead">@Count</b>
+                    </span>
+
+                    <!-- Increase quantity -->
+                    <span @onclick="() => OnUpdate.InvokeAsync((ProductId, 1))">
+                        <i class="bi bi-plus-circle-fill btn text-secondary"></i>
+                    </span>
+                </div>
+
+                <!-- Remove item from cart -->
+                <button class="btn btn-danger" @onclick="() => OnUpdate.InvokeAsync((ProductId, -10000))">
+                    Remove
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Product info
+    [Parameter] public int ProductId { get; set; }
+    [Parameter] public string ProductName { get; set; } = string.Empty;
+    [Parameter] public string ImageUrl { get; set; } = "/images/default.png";
+
+    // Quantity and price
+    [Parameter] public double PriceValue { get; set; }
+    [Parameter] public int Count { get; set; }
+
+    // Event callback: (ProductId, Change) → Change can be +1, -1, or -10000 for removal
+    [Parameter] public EventCallback<(int ProductId, int Change)> OnUpdate { get; set; }
+
+    // Format currency as USD
+    private readonly CultureInfo _usCulture = CultureInfo.GetCultureInfo("en-US");
+
+    private string Price => PriceValue.ToString("C", _usCulture);
+    private string TotalPrice => (PriceValue * Count).ToString("C", _usCulture);
+}

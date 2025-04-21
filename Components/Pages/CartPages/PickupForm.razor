@@ -1,0 +1,64 @@
+﻿
+@using System.Globalization
+@using AvinaShop.Data
+
+
+<!-- Pickup details form -->
+<EditForm Model="OrderHeader" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+
+    <!-- User input fields -->
+    <div class="card-body">
+        <!-- Name -->
+        <div class="form-group">
+            <label>Name</label>
+            <InputText @bind-Value="OrderHeader.Name" class="form-control" />
+            <ValidationMessage For="@(() => OrderHeader.Name)" />
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+            <label>Email</label>
+            <InputText @bind-Value="OrderHeader.Email" class="form-control" />
+            <ValidationMessage For="@(() => OrderHeader.Email)" />
+        </div>
+
+        <!-- Phone number -->
+        <div class="form-group">
+            <label>Phone</label>
+            <InputText @bind-Value="OrderHeader.PhoneNumber" class="form-control" />
+            <ValidationMessage For="@(() => OrderHeader.PhoneNumber)" />
+        </div>
+
+        <!-- Summary card -->
+        <div class="card mt-4 bg-light">
+            <div class="card-body">
+                <h4>Grand Total: @OrderHeader.OrderTotal.ToString("C", _usCulture)</h4>
+                <h4>No. of Items: @TotalItems</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit button -->
+    <button type="submit" class="btn btn-success m-4">
+        Looks Good? Place Order!
+    </button>
+</EditForm>
+
+@code {
+    // Parameters passed from parent component
+    [Parameter] public OrderHeader OrderHeader { get; set; } = new();
+    [Parameter] public int TotalItems { get; set; }
+
+    // Called when the form is valid and submitted
+    [Parameter] public EventCallback OnSubmit { get; set; }
+
+    // Culture for currency formatting
+    private readonly CultureInfo _usCulture = CultureInfo.GetCultureInfo("en-US");
+
+    private async Task HandleSubmit()
+    {
+        // Notify parent to continue processing order
+        await OnSubmit.InvokeAsync();
+    }
+}
