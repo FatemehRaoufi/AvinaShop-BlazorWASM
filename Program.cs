@@ -3,6 +3,7 @@ using AvinaShop.Components.Account;
 using AvinaShop.Data;
 using AvinaShop.Repository;
 using AvinaShop.Repository.IRepository;
+using AvinaShop.Services;
 using AvinaShop.Services.UserServices;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -24,7 +25,8 @@ builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuth
 // Register repositories for dependency injection (DI)
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
-
+builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
+builder.Services.AddScoped<SharedStateService>();
 #region RoleManagement Injection
 
 // Dependency Inversion Principle (DIP)
