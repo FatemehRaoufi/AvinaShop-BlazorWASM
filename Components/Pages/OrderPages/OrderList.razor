@@ -1,0 +1,134 @@
+﻿@page "/order/list"
+@using Microsoft.AspNetCore.Authorization
+@using AvinaShop.Data
+@using AvinaShop.Services.OrderServices
+
+
+@inject NavigationManager _navigationManager
+@inject IOrderService OrderService
+@attribute [Authorize]
+
+@if (IsProcessing)
+{
+    <!-- Loading spinner while data is processing -->
+    <div class="position-absolute w-100 vh-100 d-flex flex-column align-items-center bg-white justify-content-center">
+        <img src="/images/loading.gif" alt="loading" />
+    </div>
+}
+else
+{
+    <div class="card shadow border-0 m-4">
+        <!-- Header Section -->
+        <div class="card-header bg-black bg-gradient ml-0 py-3">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <h2 class="text-white py-2">Order List</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="card-body p-4">
+            @if (OrderHeaders.Any())
+            {
+                <!-- Orders Table -->
+                <table class="table table-striped table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Phone Number</th>
+                            <th>Email</th>
+                            <th>Order Total</th>
+                            <th>Order Date</th>
+                            <th>Status</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in OrderHeaders)
+                        {
+                            <tr>
+                                <td>@order.Id</td>
+                                <td>@order.Name</td>
+                                <td>@order.PhoneNumber</td>
+                                <td>@order.Email</td>
+                                <td>@order.OrderTotal.ToString("C")</td>
+                                <td>@order.OrderDate.ToShortDateString()</td>
+                                <td>@order.Status</td>
+                                <td class="text-center">
+                                    <!-- Details Button -->
+                                    <button class="btn btn-primary btn-sm"
+                                            @onclick="@(() => NavigateToOrderDetails(order.Id))">
+                                        Details
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <!-- Message if no orders exist -->
+                <div class="alert alert-info">No orders found.</div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    // Indicates whether the page is currently loading data
+    private bool IsProcessing { get; set; } = true;
+
+    private const string OrderDetailsRoute = "order/details/"; // using Constant as clean code principle
+
+    // List of all order headers to display
+
+    //private IEnumerable<OrderHeader> OrderHeaders { get; set; } = new List<OrderHeader>(); 
+    // Refactoring to use Enumerable.Empty<OrderHeader>() for better memory management
+    private IEnumerable<OrderHeader> OrderHeaders { get; set; } = Enumerable.Empty<OrderHeader>(); 
+
+    // User role info
+    private bool? IsAdmin { get; set; }
+    private string? UserId { get; set; }
+
+    // Provides the authentication state (current user info)
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthenticationState { get; set; }
+
+    
+    private void NavigateToOrderDetails(int orderId)
+    {
+        // _navigationManager.NavigateTo($"order/details/{orderId}");
+        _navigationManager.NavigateTo($"{OrderDetailsRoute}{orderId}");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadOrdersAsync();
+        }
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        StartProcessing();
+        OrderHeaders = await OrderService.GetOrderHeadersAsync();
+        StopProcessing();
+    }
+
+    private void StartProcessing()
+    {
+        IsProcessing = true;
+        StateHasChanged();
+    }
+
+    private void StopProcessing()
+    {
+        IsProcessing = false;
+        StateHasChanged();
+    }
+
+}
