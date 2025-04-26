@@ -4,6 +4,7 @@ using AvinaShop.Data;
 using AvinaShop.Repository;
 using AvinaShop.Repository.IRepository;
 using AvinaShop.Services;
+using AvinaShop.Services.OrderServices;
 using AvinaShop.Services.UserServices;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -28,6 +29,8 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
 builder.Services.AddScoped<SharedStateService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<PaymentService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 
 #region RoleManagement Injection
 
