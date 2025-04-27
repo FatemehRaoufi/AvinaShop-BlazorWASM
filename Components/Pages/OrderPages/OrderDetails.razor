@@ -1,81 +1,94 @@
 ﻿@page "/order/details/{Id:int}"
+
 @using System.Globalization
 @using AvinaShop.Data
 @using AvinaShop.Repository.IRepository
 @using AvinaShop.Services.Extensions
+@using AvinaShop.Services.OrderServices
 @using AvinaShop.Utility
 
-@inject IOrderRepository _orderRepository
-@inject IJSRuntime _JS
-@inject AuthenticationStateProvider _AuthenticationStateProvider
+@inject IOrderService _orderService
+@inject IJSRuntime _jsRuntime
+@inject AuthenticationStateProvider _authenticationStateProvider
+
+
 @if (IsProcessing)
 {
+    <!-- Loading Spinner -->
     <div class="position-absolute w-100 vh-100 d-flex flex-column align-items-center bg-white justify-content-center">
         <img src="/images/loading.gif" alt="loading" />
     </div>
 }
 else
 {
+    <!-- Main Content -->
     <div class="container my-5 mx-auto p-5 w-100" style="max-width: 950px;">
         <div class="card" style="max-width: 750px;">
+
+            <!-- Header Section -->
             <div class="pt-3 text-success text-center">
-                <span class="h4"> ORDER DETAILS</span>
+                <span class="h4">ORDER DETAILS</span>
             </div>
 
             <hr />
+
+            <!-- Order Information -->
             <div class="px-3">
                 <p>Order Id: @OrderHeader.Id </p>
                 <p>Name: @OrderHeader.Name</p>
                 <p>Email: @OrderHeader.Email</p>
                 <p>Phone: @OrderHeader.PhoneNumber</p>
-                <p>Order Status:  @OrderHeader.Status</p>
+                <p>Order Status: @OrderHeader.Status</p>
             </div>
+
             <hr />
+
+            <!-- Order Items List -->
             <div class="card-body">
                 <h4 class="text-success">Menu Items</h4>
 
-                @foreach (var details in OrderHeader.OrderDetails)
+                @foreach (var item in OrderHeader.OrderDetails)
                 {
                     <div class="d-flex">
                         <div class="d-flex w-100 justify-content-between">
-                        <p>
-                            &nbsp; -- @details.ProductName
-                        </p>
-                        <p>
-                                @details.Price.ToString("C", CultureInfo.GetCultureInfo("en-us")) x @details.Count =
-                        </p>
+                            <p>&nbsp; -- @item.ProductName</p>
+                            <p>@item.Price.ToString("C", CultureInfo.GetCultureInfo("en-us")) x @item.Count =</p>
+                        </div>
+                        <div class="ps-4">
+                            @((item.Price * item.Count).ToString("C", CultureInfo.GetCultureInfo("en-us")))
+                        </div>
                     </div>
-                    <div class="ps-4">
-                            @((details.Price * @details.Count).ToString("C", CultureInfo.GetCultureInfo("en-us")))
-                    </div>
-
-                </div>
                 }
 
                 <hr />
+
+                <!-- Order Total Price -->
                 <h4 class="text-success text-end">
                     @OrderHeader.OrderTotal.ToString("C", CultureInfo.GetCultureInfo("en-us"))
                 </h4>
+
                 <hr />
 
+                <!-- Action Buttons -->
                 <div class="row">
                     <div class="col-5">
-                        <a href="order/list" class="btn btn-secondary  m-2 p-2" style="width:150px;">Back to Orders</a>
+                        <a href="order/list" class="btn btn-secondary m-2 p-2" style="width:150px;">Back to Orders</a>
                     </div>
                     <div class="col-7 text-end">
-                        @if (OrderHeader.Status != AppConstants.StatusCancelled && OrderHeader.Status != AppConstants.StatusCompleted
-                        && _AuthenticationStateProvider.GetAuthenticationStateAsync().GetAwaiter().GetResult().User?.IsInRole(AppConstants.Role_Admin) == true
-                        )
+                        @if (CanUpdateOrderStatus())
                         {
-                            <button class="btn btn-danger m-2 p-2" @onclick="()=>UpdateStatus(AppConstants.StatusCancelled)" style="width:150px;">Cancel Order</button>
+                            <!-- Cancel Order -->
+                            <button class="btn btn-danger m-2 p-2" @onclick="() => UpdateStatus(AppConstants.StatusCancelled)" style="width:150px;">Cancel Order</button>
 
                             @if (OrderHeader.Status == AppConstants.StatusApproved)
                             {
-                                <button class="btn btn-primary m-2 p-2" @onclick="()=>UpdateStatus(AppConstants.StatusReadyForPickUp)" style="width:150px;">Ready for Pickup</button>
+                                <!-- Ready for Pickup -->
+                                <button class="btn btn-primary m-2 p-2" @onclick="() => UpdateStatus(AppConstants.StatusReadyForPickUp)" style="width:150px;">Ready for Pickup</button>
                             }
                             @if (OrderHeader.Status == AppConstants.StatusReadyForPickUp)
                             {
-                                <button class="btn btn-success m-2 p-2" @onclick="()=>UpdateStatus(AppConstants.StatusCompleted)" style="width:150px;">Completed</button>
+                                <!-- Completed -->
+                                <button class="btn btn-success m-2 p-2" @onclick="() => UpdateStatus(AppConstants.StatusCompleted)" style="width:150px;">Completed</button>
                             }
                         }
                     </div>
@@ -83,47 +96,75 @@ else
             </div>
         </div>
     </div>
-
-
-
 }
 
 @code {
-    private bool IsProcessing { get; set; } = true;
+    [Inject] private NavigationManager NavigationManager { get; set; }
+    //[Inject] private IOrderService orderService { get; set; }
+    #region Parameters
+
     [Parameter]
     public int Id { get; set; }
+
+    #endregion
+
+    #region Private Properties
+
+    private bool IsProcessing { get; set; } = true; // Flag to indicate data loading state
     private OrderHeader? OrderHeader = null;
 
+    #endregion
+
+    #region Lifecycle Method
+    // This lifecycle method is triggered after the component has rendered
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await LoadOrder();
-            IsProcessing = false;
-            StateHasChanged();
+            await LoadOrderAsync();
+            StopProcessing();// Load order details on the first render
         }
-        
     }
+   
+    #endregion
 
-    private async Task LoadOrder()
+    #region Private Methods
+
+    private async Task LoadOrderAsync()
     {
-        OrderHeader = await _orderRepository.GetAsync(Id);
-        
+        StartProcessing();
+        OrderHeader = await _orderService.GetOrderByIdAsync(Id);  // Get order details by ID
+
     }
 
+    // This method updates the order status using the service
     private async Task UpdateStatus(string newStatus)
     {
-        await _orderRepository.UpdateStatusAsync(Id, newStatus,"");
-        _JS?.ToastrSuccess("Status updated successfully to "+ newStatus);
+        await _orderService.UpdateOrderStatusAsync(Id, newStatus, "");  // Update the status in the backend
+        _jsRuntime?.ToastrSuccess($"Status updated successfully to {newStatus}");  // Notify user about the successful update
     }
 
+    // This method checks if the current user has permission to update the order status
+    private bool CanUpdateOrderStatus()
+    {
+        var user = _authenticationStateProvider.GetAuthenticationStateAsync().Result.User;  // Get the current user
+        return OrderHeader.Status != AppConstants.StatusCancelled &&
+               OrderHeader.Status != AppConstants.StatusCompleted &&
+               user?.IsInRole(AppConstants.Role_Admin) == true;  // Only allow admin to update status if not cancelled or completed
+    }
 
+    private void StartProcessing()
+    {
+        IsProcessing = true;
+        StateHasChanged();  // Refresh UI
+    }
 
+    private void StopProcessing()
+    {
+        IsProcessing = false;
+        StateHasChanged();  // Refresh UI
+    }
 
-
-
-
-
-
+    #endregion
 }
