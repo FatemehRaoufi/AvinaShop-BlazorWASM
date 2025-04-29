@@ -1,0 +1,27 @@
+﻿@using Microsoft.AspNetCore.Components;
+@using AvinaShop.Services
+
+@implements IDisposable
+
+@inject LoadingService _loadingService
+
+@if (_loadingService.IsLoading)
+{
+    <div class="position-absolute w-100 vh-100 d-flex flex-column align-items-center bg-white justify-content-center" style="z-index: 9999;">
+        <img src="/images/loading.gif" alt="loading" />
+    </div>
+}
+
+
+@code {
+    protected override void OnInitialized()
+    {
+        _loadingService.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        _loadingService.OnChange -= StateHasChanged;
+    }
+
+}

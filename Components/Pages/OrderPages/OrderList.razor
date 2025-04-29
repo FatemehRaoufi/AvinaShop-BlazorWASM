@@ -2,19 +2,20 @@
 @using Microsoft.AspNetCore.Authorization
 @using AvinaShop.Data
 @using AvinaShop.Services.OrderServices
-@inject NavigationManager NavigationManager
-@inject IOrderService OrderService
+@using AvinaShop.Services
+
+<!-- Order Services -->
+@inject IOrderService _orderService
+
+<!-- UI and Payment Services -->
+@inject NavigationManager _navigationManager
+@inject LoadingService _loadingService
+
+<!-- Apply the Authorize attribute to enforce user authentication -->
 @attribute [Authorize]
 
-@if (IsProcessing)
-{
-    <div class="position-absolute w-100 vh-100 d-flex flex-column align-items-center bg-white justify-content-center">
-        <img src="/images/loading.gif" alt="Loading..." />
-    </div>
-}
-else
-{
-    <div class="container my-5 mx-auto p-4 w-100" style="max-width: 950px;">
+
+<div class="container my-5 mx-auto p-4 w-100" style="max-width: 950px;">
         <div class="card shadow border-0">
             <div class="card-header bg-black text-white text-center py-3">
                 <h2>Order List</h2>
@@ -69,43 +70,51 @@ else
 }
 
 @code {
-    private bool IsProcessing { get; set; } = true;
     private IEnumerable<OrderHeader> OrderHeaders { get; set; } = Enumerable.Empty<OrderHeader>();
-
     private const string OrderDetailsRoute = "order/details/";
 
     [CascadingParameter]
     public Task<AuthenticationState> AuthenticationState { get; set; }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private void NavigateToOrderDetails(int orderId)
     {
-        if (firstRender)
+        _navigationManager.NavigateTo($"{OrderDetailsRoute}{orderId}");
+    }
+    
+   
+    protected override async Task OnInitializedAsync()
+    {
+        _loadingService.Show();
+        OrderHeaders = await _orderService.GetOrderHeadersAsync();
+        _loadingService.Hide();
+    }
+    /*
+    private bool IsProcessing { get; set; } = true;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
         {
+        if (firstRender)
+            {
             await LoadOrdersAsync();
-        }
+    }
     }
 
     private async Task LoadOrdersAsync()
-    {
+        {
         StartProcessing();
-        OrderHeaders = await OrderService.GetOrderHeadersAsync();
+        OrderHeaders = await _orderService.GetOrderHeadersAsync();
         StopProcessing();
     }
-
-    private void NavigateToOrderDetails(int orderId)
-    {
-        NavigationManager.NavigateTo($"{OrderDetailsRoute}{orderId}");
-    }
-
     private void StartProcessing()
-    {
+        {
         IsProcessing = true;
         StateHasChanged();
     }
 
     private void StopProcessing()
-    {
+        {
         IsProcessing = false;
         StateHasChanged();
-    }
+        }
+    */
+
 }

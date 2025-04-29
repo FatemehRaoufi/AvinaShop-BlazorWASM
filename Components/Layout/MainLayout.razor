@@ -1,7 +1,10 @@
 ﻿@using AvinaShop.Utility
-@inherits LayoutComponentBase
-@inject AuthenticationStateProvider _AuthenticationStateProvider
+@using AvinaShop.Services
 
+@inherits LayoutComponentBase
+
+@inject AuthenticationStateProvider _authenticationStateProvider
+@inject LoadingService _loadingService
 <div class="page">
     <AuthorizeView Roles="@AppConstants.Role_Admin">
         <div class="sidebar">
@@ -10,13 +13,17 @@
     </AuthorizeView>
 
     <main>
-        @if (_navBarVisible) 
+        @if (_navBarVisible)
         {
             <NavBar></NavBar>
         }
         @Body
+
     </main>
 </div>
+
+<!-- Loading spinner component to show processing state -->
+<LoadingSpinner />
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
@@ -24,7 +31,9 @@
     <span class="dismiss">🗙</span>
 </div>
 
-@code{
+@* Loading spinner component to show processing state *@
+
+@code {
     private bool _navBarVisible;
     protected override async Task OnInitializedAsync()
     {
@@ -38,7 +47,7 @@
 
     private async Task<bool> ShowNavBar()
     {
-        var authState = await _AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         var authenticated = user.Identity is not null && user.Identity.IsAuthenticated;
 

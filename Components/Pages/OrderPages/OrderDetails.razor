@@ -6,97 +6,91 @@
 @using AvinaShop.Services.Extensions
 @using AvinaShop.Services.OrderServices
 @using AvinaShop.Utility
+@using AvinaShop.Services
 
 @inject IOrderService _orderService
 @inject IJSRuntime _jsRuntime
 @inject AuthenticationStateProvider _authenticationStateProvider
+@inject LoadingService _loadingService
 
 
-@if (IsProcessing)
-{
-    <!-- Loading Spinner -->
-    <div class="position-absolute w-100 vh-100 d-flex flex-column align-items-center bg-white justify-content-center">
-        <img src="/images/loading.gif" alt="loading" />
-    </div>
-}
-else
-{
-    <!-- Main Content -->
-    <div class="container my-5 mx-auto p-5 w-100" style="max-width: 950px;">
-        <div class="card" style="max-width: 750px;">
 
-            <!-- Header Section -->
-            <div class="pt-3 text-success text-center">
-                <span class="h4">ORDER DETAILS</span>
-            </div>
+<!-- Main Content -->
+<div class="container my-5 mx-auto p-5 w-100" style="max-width: 950px;">
+    <div class="card" style="max-width: 750px;">
+
+        <!-- Header Section -->
+        <div class="pt-3 text-success text-center">
+            <span class="h4">ORDER DETAILS</span>
+        </div>
+
+        <hr />
+
+        <!-- Order Information -->
+        <div class="px-3">
+            <p>Order Id: @OrderHeader.Id </p>
+            <p>Name: @OrderHeader.Name</p>
+            <p>Email: @OrderHeader.Email</p>
+            <p>Phone: @OrderHeader.PhoneNumber</p>
+            <p>Order Status: @OrderHeader.Status</p>
+        </div>
+
+        <hr />
+
+        <!-- Order Items List -->
+        <div class="card-body">
+            <h4 class="text-success">Menu Items</h4>
+
+            @foreach (var item in OrderHeader.OrderDetails)
+            {
+                <div class="d-flex">
+                    <div class="d-flex w-100 justify-content-between">
+                        <p>&nbsp; -- @item.ProductName</p>
+                        <p>@item.Price.ToString("C", CultureInfo.GetCultureInfo("en-us")) x @item.Count =</p>
+                    </div>
+                    <div class="ps-4">
+                        @((item.Price * item.Count).ToString("C", CultureInfo.GetCultureInfo("en-us")))
+                    </div>
+                </div>
+            }
 
             <hr />
 
-            <!-- Order Information -->
-            <div class="px-3">
-                <p>Order Id: @OrderHeader.Id </p>
-                <p>Name: @OrderHeader.Name</p>
-                <p>Email: @OrderHeader.Email</p>
-                <p>Phone: @OrderHeader.PhoneNumber</p>
-                <p>Order Status: @OrderHeader.Status</p>
-            </div>
+            <!-- Order Total Price -->
+            <h4 class="text-success text-end">
+                @OrderHeader.OrderTotal.ToString("C", CultureInfo.GetCultureInfo("en-us"))
+            </h4>
 
             <hr />
 
-            <!-- Order Items List -->
-            <div class="card-body">
-                <h4 class="text-success">Menu Items</h4>
+            <!-- Action Buttons -->
+            <div class="row">
+                <div class="col-5">
+                    <a href="order/list" class="btn btn-secondary m-2 p-2" style="width:150px;">Back to Orders</a>
+                </div>
+                <div class="col-7 text-end">
+                    @if (CanUpdateOrderStatus())
+                    {
+                        <!-- Cancel Order -->
+                        <button class="btn btn-danger m-2 p-2" @onclick="() => UpdateStatus(AppConstants.StatusCancelled)" style="width:150px;">Cancel Order</button>
 
-                @foreach (var item in OrderHeader.OrderDetails)
-                {
-                    <div class="d-flex">
-                        <div class="d-flex w-100 justify-content-between">
-                            <p>&nbsp; -- @item.ProductName</p>
-                            <p>@item.Price.ToString("C", CultureInfo.GetCultureInfo("en-us")) x @item.Count =</p>
-                        </div>
-                        <div class="ps-4">
-                            @((item.Price * item.Count).ToString("C", CultureInfo.GetCultureInfo("en-us")))
-                        </div>
-                    </div>
-                }
-
-                <hr />
-
-                <!-- Order Total Price -->
-                <h4 class="text-success text-end">
-                    @OrderHeader.OrderTotal.ToString("C", CultureInfo.GetCultureInfo("en-us"))
-                </h4>
-
-                <hr />
-
-                <!-- Action Buttons -->
-                <div class="row">
-                    <div class="col-5">
-                        <a href="order/list" class="btn btn-secondary m-2 p-2" style="width:150px;">Back to Orders</a>
-                    </div>
-                    <div class="col-7 text-end">
-                        @if (CanUpdateOrderStatus())
+                        @if (OrderHeader.Status == AppConstants.StatusApproved)
                         {
-                            <!-- Cancel Order -->
-                            <button class="btn btn-danger m-2 p-2" @onclick="() => UpdateStatus(AppConstants.StatusCancelled)" style="width:150px;">Cancel Order</button>
-
-                            @if (OrderHeader.Status == AppConstants.StatusApproved)
-                            {
-                                <!-- Ready for Pickup -->
-                                <button class="btn btn-primary m-2 p-2" @onclick="() => UpdateStatus(AppConstants.StatusReadyForPickUp)" style="width:150px;">Ready for Pickup</button>
-                            }
-                            @if (OrderHeader.Status == AppConstants.StatusReadyForPickUp)
-                            {
-                                <!-- Completed -->
-                                <button class="btn btn-success m-2 p-2" @onclick="() => UpdateStatus(AppConstants.StatusCompleted)" style="width:150px;">Completed</button>
-                            }
+                            <!-- Ready for Pickup -->
+                            <button class="btn btn-primary m-2 p-2" @onclick="() => UpdateStatus(AppConstants.StatusReadyForPickUp)" style="width:150px;">Ready for Pickup</button>
                         }
-                    </div>
+                        @if (OrderHeader.Status == AppConstants.StatusReadyForPickUp)
+                        {
+                            <!-- Completed -->
+                            <button class="btn btn-success m-2 p-2" @onclick="() => UpdateStatus(AppConstants.StatusCompleted)" style="width:150px;">Completed</button>
+                        }
+                    }
                 </div>
             </div>
         </div>
     </div>
-}
+</div>
+
 
 @code {
     [Inject] private NavigationManager NavigationManager { get; set; }
@@ -122,21 +116,24 @@ else
     {
         if (firstRender)
         {
+            _loadingService.Show();
             await LoadOrderAsync();
-            StopProcessing();// Load order details on the first render
+            _loadingService.Hide();
+            StateHasChanged();
         }
     }
-   
+
+
     #endregion
 
     #region Private Methods
-
+   
+    // Get order details by ID
     private async Task LoadOrderAsync()
-    {
-        StartProcessing();
-        OrderHeader = await _orderService.GetOrderByIdAsync(Id);  // Get order details by ID
-
+    {      
+            OrderHeader = await _orderService.GetOrderByIdAsync(Id);      
     }
+
 
     // This method updates the order status using the service
     private async Task UpdateStatus(string newStatus)
@@ -154,17 +151,7 @@ else
                user?.IsInRole(AppConstants.Role_Admin) == true;  // Only allow admin to update status if not cancelled or completed
     }
 
-    private void StartProcessing()
-    {
-        IsProcessing = true;
-        StateHasChanged();  // Refresh UI
-    }
-
-    private void StopProcessing()
-    {
-        IsProcessing = false;
-        StateHasChanged();  // Refresh UI
-    }
+  
 
     #endregion
 }

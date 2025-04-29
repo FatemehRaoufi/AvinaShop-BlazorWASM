@@ -15,58 +15,65 @@
 @inject IOrderRepository OrderRepository
 
 <!-- UI and Payment Services -->
-@inject NavigationManager NavigationManager
-@inject SharedStateService SharedStateService
-@inject PaymentService PaymentService
+@inject NavigationManager _navigationManager
+@inject SharedStateService _sharedStateService
+@inject PaymentService _paymentService
+@inject LoadingService _loadingService
 
 <!-- Apply the Authorize attribute to enforce user authentication -->
 @attribute [Authorize]
 
-@if (IsProcessing)
+
+
+@* @if (IsProcessing)
 {
     <div class="position-absolute w-100 vh-100 d-flex flex-column align-items-center bg-white justify-content-center">
-        <img src="/images/loading.gif" alt="loading" />
+        <img src="/images/loading.gif" alt="Loading..." />
+    </div>
+}
+else
+{ } *@
+
+
+<!-- Loading spinner component to show processing state -->
+<LoadingSpinner />
+
+    @if (ShoppingCarts.Any())
+{
+    <div class="row w-100">
+        <div class="col-lg-6 col-12">
+            <div class="container p-4 m-2">
+                <h4 class="text-center text-success display-6">
+                    Cart Summary
+                </h4>
+                <CartSummary Items="ShoppingCarts" OnItemUpdated="UpdateCartItem" />
+            </div>
+        </div>
+        <div class="col-lg-6 col-12 p-4">
+            <div class="card">
+                <div class="card-header text-success text-center display-6">
+                    Pickup Details
+                </div>
+                <PickupForm OrderHeader="OrderHeader" TotalItems="TotalItems" OnSubmit="ProcessOrderCreation" />
+            </div>
+        </div>
     </div>
 }
 else
 {
-    @if (ShoppingCarts.Any())
-    {
-        <div class="row w-100">
-            <div class="col-lg-6 col-12">
-                <div class="container p-4 m-2">
-                    <h4 class="text-center text-success display-6">
-                        Cart Summary
-                    </h4>
-                    <CartSummary Items="ShoppingCarts" OnItemUpdated="UpdateCartItem" />
-                </div>
-            </div>
-            <div class="col-lg-6 col-12 p-4">
-                <div class="card">
-                    <div class="card-header text-success text-center display-6">
-                        Pickup Details
-                    </div>
-                    <PickupForm OrderHeader="OrderHeader" TotalItems="TotalItems" OnSubmit="ProcessOrderCreation" />
-                </div>
-            </div>
+    <div class="p-4">
+        <div class="alert alert-warning">
+            Your cart is empty! Please add items to cart.
         </div>
-    }
-    else
-    {
-        <div class="p-4">
-            <div class="alert alert-warning">
-                Your cart is empty! Please add items to cart.
-            </div>
-        </div>
-    }
+    </div>
 }
+
 
 @code {
     private const int RemoveItemCode = -10000; // Special code for removing item from the cart
     private readonly CultureInfo _usCulture = CultureInfo.GetCultureInfo("en-us"); // US culture for currency formatting
-
     private IEnumerable<ShoppingCart> ShoppingCarts = new List<ShoppingCart>(); // Cart items
-    private bool IsProcessing { get; set; } = true; // Flag for processing state
+
     [SupplyParameterFromForm]
     public OrderHeader OrderHeader { get; set; } = new OrderHeader(); // Order details
     private int TotalItems { get; set; } = 0; // Total number of items in cart
@@ -82,15 +89,34 @@ else
     }
 
     // After the component has rendered, load the cart items
+    /*
+      private bool IsProcessing { get; set; } = true; // Flag for processing state
+
+      protected override async Task OnAfterRenderAsync(bool firstRender)
+         {
+             if (firstRender)
+             {
+                 await LoadCartAsync(); // Load the cart data for the user
+                 IsProcessing = false;
+                 StateHasChanged(); // Refresh the UI
+             }
+         }
+         */
+
+    // The above code is replaced with the _loadingService and LoadingSpinner component
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await LoadCartAsync(); // Load the cart data for the user
-            IsProcessing = false;
-            StateHasChanged(); // Refresh the UI
+            _loadingService.Show();
+            await LoadCartAsync();
+            _loadingService.Hide();
+
+            StateHasChanged();
         }
     }
+
 
     // Load cart items from the repository using the helper
     private async Task LoadCartAsync()
@@ -110,27 +136,44 @@ else
         await CartHelper.UpdateCartItemAsync(CartRepository, OrderHeader.UserId, productId, updateBy);
 
         // Update the global cart count and reload cart data
-        SharedStateService.TotalCartCount = await CartRepository.GetTotalCartCartCountAsync(OrderHeader.UserId);
+        _sharedStateService.TotalCartCount = await CartRepository.GetTotalCartCartCountAsync(OrderHeader.UserId);
         await LoadCartAsync(); // Reload cart data
     }
 
     // Process the order and create a Stripe checkout session
+    /*  private async Task ProcessOrderCreation()
+          {
+              IsProcessing = true;
+              await Task.Yield();
+
+              OrderHeader.OrderDetails = AppConstants.ConvertShoppingCartListToOrderDetail(ShoppingCarts.ToList());
+
+              var session = _paymentService.CreateStripeCheckoutSession(OrderHeader);
+              OrderHeader.SessionId = session.Id;
+
+              await OrderRepository.CreateAsync(OrderHeader);
+
+              _navigationManager.NavigateTo(session.Url);
+          }
+          */
+
+
+    // The above code is replaced with the _loadingService and LoadingSpinner component
+
     private async Task ProcessOrderCreation()
     {
-        IsProcessing = true;
-        await Task.Yield(); // Ensure UI responsiveness during processing
-
-        // Convert shopping cart to order details for Stripe session
+        _loadingService.Show();
+        await Task.Yield(); // keeping UI Responsive
+        
         OrderHeader.OrderDetails = AppConstants.ConvertShoppingCartListToOrderDetail(ShoppingCarts.ToList());
-
-        // Create the Stripe checkout session
-        var session = PaymentService.CreateStripeCheckoutSession(OrderHeader);
+        var session = _paymentService.CreateStripeCheckoutSession(OrderHeader);
         OrderHeader.SessionId = session.Id;
 
-        // Save the order in the database
         await OrderRepository.CreateAsync(OrderHeader);
+        _loadingService.Hide();
 
-        // Redirect the user to the Stripe payment gateway
-        NavigationManager.NavigateTo(session.Url);
+        _navigationManager.NavigateTo(session.Url);
+
+        
     }
 }

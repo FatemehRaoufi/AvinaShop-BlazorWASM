@@ -31,6 +31,7 @@ builder.Services.AddScoped<SharedStateService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddSingleton<LoadingService>();
 
 #region RoleManagement Injection
 
