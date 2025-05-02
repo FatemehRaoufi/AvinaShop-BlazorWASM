@@ -8,16 +8,16 @@
 @using AvinaShop.Helpers
 
 <!--  Authentication Services -->
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject AuthenticationStateProvider _authenticationStateProvider
 
-<!-- Cart and Order Services -->
-@inject IShoppingCartRepository CartRepository
-@inject IOrderRepository OrderRepository
+<!-- Cart, Order and Payment Services -->
+@inject IShoppingCartRepository _shoppingCartRepository
+@inject IOrderRepository _orderRepository
+@inject PaymentService _paymentService
 
-<!-- UI and Payment Services -->
+<!-- UI  Services -->
 @inject NavigationManager _navigationManager
 @inject SharedStateService _sharedStateService
-@inject PaymentService _paymentService
 @inject LoadingService _loadingService
 
 <!-- Apply the Authorize attribute to enforce user authentication -->
@@ -32,13 +32,12 @@
     </div>
 }
 else
-{ } *@
+{ @if (ShoppingCarts.Any()){...}} *@
 
 
-<!-- Loading spinner component to show processing state -->
-<LoadingSpinner />
 
-    @if (ShoppingCarts.Any())
+
+@if (ShoppingCarts.Any())
 {
     <div class="row w-100">
         <div class="col-lg-6 col-12">
@@ -81,7 +80,7 @@ else
     // Initialize order header with authenticated user's information
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         OrderHeader.Email = user.FindFirst(u => u.Type.Contains("email"))?.Value;
         OrderHeader.UserId = user.FindFirst(u => u.Type.Contains("nameidentifier"))?.Value;
@@ -121,7 +120,7 @@ else
     // Load cart items from the repository using the helper
     private async Task LoadCartAsync()
     {
-        ShoppingCarts = await CartHelper.LoadCartAsync(CartRepository, OrderHeader.UserId); // Use helper to load cart
+        ShoppingCarts = await CartHelper.LoadCartAsync(_shoppingCartRepository, OrderHeader.UserId); // Use helper to load cart
         OrderHeader.OrderTotal = CartHelper.CalculateTotalAmount(ShoppingCarts); // Calculate total amount
         TotalItems = CartHelper.CalculateTotalItems(ShoppingCarts); // Calculate total items
     }
@@ -132,11 +131,10 @@ else
         var productId = itemUpdate.Item1;
         var updateBy = itemUpdate.Item2;
 
-        // Update the cart using helper method
-        await CartHelper.UpdateCartItemAsync(CartRepository, OrderHeader.UserId, productId, updateBy);
+        await CartHelper.UpdateCartItemAsync(_shoppingCartRepository, OrderHeader.UserId, productId, updateBy);// Update the cart using helper method
 
-        // Update the global cart count and reload cart data
-        _sharedStateService.TotalCartCount = await CartRepository.GetTotalCartCartCountAsync(OrderHeader.UserId);
+        _sharedStateService.TotalCartCount = await _shoppingCartRepository.GetTotalCartCartCountAsync(OrderHeader.UserId);// Update the global cart count and reload cart data
+        
         await LoadCartAsync(); // Reload cart data
     }
 
@@ -151,29 +149,29 @@ else
               var session = _paymentService.CreateStripeCheckoutSession(OrderHeader);
               OrderHeader.SessionId = session.Id;
 
-              await OrderRepository.CreateAsync(OrderHeader);
+              await _orderRepository.CreateAsync(OrderHeader);
 
               _navigationManager.NavigateTo(session.Url);
           }
-          */
 
+    */
 
-    // The above code is replaced with the _loadingService and LoadingSpinner component
+    // Code Review: The above code is replaced with the _loadingService and LoadingSpinner component
 
     private async Task ProcessOrderCreation()
     {
         _loadingService.Show();
         await Task.Yield(); // keeping UI Responsive
-        
+
         OrderHeader.OrderDetails = AppConstants.ConvertShoppingCartListToOrderDetail(ShoppingCarts.ToList());
         var session = _paymentService.CreateStripeCheckoutSession(OrderHeader);
         OrderHeader.SessionId = session.Id;
 
-        await OrderRepository.CreateAsync(OrderHeader);
+        await _orderRepository.CreateAsync(OrderHeader);
         _loadingService.Hide();
 
         _navigationManager.NavigateTo(session.Url);
 
-        
+
     }
 }

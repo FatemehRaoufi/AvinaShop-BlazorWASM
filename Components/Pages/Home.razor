@@ -5,22 +5,33 @@
 @using AvinaShop.Services
 @using AvinaShop.Services.Extensions
 
+<!--  Authentication Services -->
 @inject AuthenticationStateProvider _AuthenticationStateProvider
-@inject IJSRuntime _JS
-@inject NavigationManager _NavigationManager
+
+<!--  Extension -->
+@inject IJSRuntime _jsRuntime
+
+<!-- Product and Cart Services -->
 @inject IProductRepository _productRepository
 @inject ICategoryRepository _categoryRepository
 @inject IShoppingCartRepository _cartRepository
+
+<!-- UI Services -->
+@inject NavigationManager _NavigationManager
 @inject SharedStateService _SharedStateService
+@inject LoadingService _loadingService
+
 <PageTitle>Home</PageTitle>
-@if (IsProcessing)
+@* @if (IsProcessing)
 {
     <div class="position-absolute w-100 vh-100 d-flex flex-column align-items-center bg-white justify-content-center">
         <img src="/images/loading.gif" alt="loading" />
     </div>
 }
 else
-{
+{ <div class="container-fluid px-0 m-0 full-width"> .... }*@
+   
+    <!-- Main page content -->
     <div class="container-fluid px-0 m-0 full-width">
         <div class="jumbotron-custom">
             <div class="m-auto d-flex align-items-center" style="width: 400px; height: 50vh;">
@@ -34,6 +45,7 @@ else
                 </div>
             </div>
         </div>
+    <!-- Navigation for product categories -->
         <div class="content px-4 m-2">
             <ul class="nav nav-underline justify-content-center mb-2">
                 <li class="nav-item">
@@ -108,35 +120,38 @@ else
             </div>
         </div>
     </div>
-}
+
 
 @code{
-    private IEnumerable<Product> Products = new List<Product>();
-    private IEnumerable<Category> Categories = new List<Category>();
-    private IEnumerable<Product> FilteredProducts = new List<Product>();
-    private bool IsProcessing { get; set; } = true;
-    private int _selectedCategoryId = 0;
-    private string _searchText = "";
+    private IEnumerable<Product> Products = new List<Product>(); // Holds all products loaded from the repository
+    private IEnumerable<Category> Categories = new List<Category>();// All product categories
+    private IEnumerable<Product> FilteredProducts = new List<Product>(); // Filtered view of products for UI display
 
+    private int _selectedCategoryId = 0; // Currently selected category ID
+    private string _searchText = ""; // Search input value
+    
+    // Pagination state
+    private int pageSize = 9;
+    private int currentPage = 1;
+    private bool isLoadingMore = false;
+    private bool hasMoreProducts = true;
 
+    // Called only once when the page renders for the first time (On first render, load products and categories) 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await LoadProducts();
-            IsProcessing = false;
-            StateHasChanged();
+            _loadingService.Show(); // Trigger loading spinner
+            await Task.Yield(); // keeping UI Responsive
+
+            await LoadProducts(); // Load initial product set
+            _loadingService.Hide(); // Hide loading spinner
+
+            StateHasChanged(); // Notify UI to re-render
         }
     }
 
-    // private async Task LoadProducts()
-    // {
-    //     Products = await _productRepository.GetAllAsync();
-    //     Categories = await _categoryRepository.GetAllAsync();
-    //     FilterProducts(0);
-    // }
-
-
+    // Filters products based on selected category ID
     private void FilterProducts(int categoryId)
     {
         if (categoryId == 0)
@@ -153,6 +168,7 @@ else
         }
     }
 
+    // Filters products in real-time as user types in search box
     private void FilterProductByName(string newValueOfSearchText)
     {
         if (string.IsNullOrWhiteSpace(newValueOfSearchText))
@@ -167,44 +183,22 @@ else
         _searchText = newValueOfSearchText;
     }
 
+    // Sets active CSS class on selected tab
     private string GetActiveTabClass(int categoryId)
     {
         return categoryId == _selectedCategoryId ? "active" : string.Empty;
     }
 
-    private async Task AddOrderItem(Product product)
-    {
-        var authState = await _AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        var authenticated = user.Identity is not null && user.Identity.IsAuthenticated;
+  // Loads products from repository (mocked pagination on client)
 
-        //if user is not authenticated then redirect to login
-        if (!authenticated)
-        {
-            _NavigationManager.NavigateTo("account/login");
-        }
-        else
-        {
-            //add item to cart
-            var userId = user.FindFirst(u => u.Type.Contains("nameidentifier"))?.Value;
-            var result = await 
-            _cartRepository.UpdateCartAsync(userId, product.Id, 1);
-            _SharedStateService.TotalCartCount = await _cartRepository.GetTotalCartCartCountAsync(userId);
-            if (result)
-            {
-                _JS?.ToastrSuccess("Product added to cart successfully");
-            }
-            else
-            {
-                _JS?.ToastrError("Error encountered");
-            }
-        }
-    }
-    private int pageSize = 9;
-    private int currentPage = 1;
-    private bool isLoadingMore = false;
-    private bool hasMoreProducts = true;
+    // private async Task LoadProducts()
+    // {
+    //     Products = await _productRepository.GetAllAsync();
+    //     Categories = await _categoryRepository.GetAllAsync();
+    //     FilterProducts(0);
+    // } Refactored to use pagination
 
+    // Refactored LoadProducts Methode which Loads products from repository (mocked pagination on client)
     private async Task LoadProducts(bool isInitial = true)
     {
         var allProducts = await _productRepository.GetAllAsync(); // Ideally should support pagination on server!
@@ -226,12 +220,104 @@ else
             hasMoreProducts = Products.Count() > FilteredProducts.Count();
         }
     }
+
+    // Handles 'Load More' button click to simulate pagination
     private async Task LoadMoreAsync()
     {
         isLoadingMore = true;
-        await Task.Delay(500); // simulate network delay
+        await Task.Delay(500); //Simulate API delay
         await LoadProducts(false);
         isLoadingMore = false;
+    }
+
+
+    /* private async Task AddOrderItem(Product product)
+       {
+       var authState = await _AuthenticationStateProvider.GetAuthenticationStateAsync();
+       var user = authState.User;
+       var authenticated = user.Identity is not null && user.Identity.IsAuthenticated;
+
+       //if user is not authenticated then redirect to login
+       if (!authenticated)
+       {
+           _NavigationManager.NavigateTo("account/login");
+       }
+       else
+       {
+           //add item to cart
+           var userId = user.FindFirst(u => u.Type.Contains("nameidentifier"))?.Value;
+           var result = await
+           _cartRepository.UpdateCartAsync(userId, product.Id, 1);
+           _SharedStateService.TotalCartCount = await _cartRepository.GetTotalCartCartCountAsync(userId);
+           if (result)
+           {
+               _jsRuntime?.ToastrSuccess("Product added to cart successfully");
+           }
+           else
+           {
+               _jsRuntime?.ToastrError("Error encountered");
+           }
+       }
+       } Code Review: Refactore by using 
+       */
+
+    // Message model used to encapsulate cart operation data
+    public class AddToCartMessage
+    {
+        public string UserId { get; set; }
+        public int ProductId { get; set; }
+        public int Quantity { get; set; }
+    }
+
+    // Handles the actual logic of adding product to cart using message-based abstraction
+    private async Task ProcessAddToCartMessageAsync(AddToCartMessage msg)
+    {
+        try
+        {
+            var result = await _cartRepository.UpdateCartAsync(msg.UserId, msg.ProductId, msg.Quantity);
+            _SharedStateService.TotalCartCount = await _cartRepository.GetTotalCartCartCountAsync(msg.UserId);
+
+            if (result)
+            {
+                _jsRuntime?.ToastrSuccess("Product added to cart successfully (message-processed)");
+            }
+            else
+            {
+                _jsRuntime?.ToastrError("Error encountered while adding to cart");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing message: {ex.Message}");
+            _jsRuntime?.ToastrError("Unexpected error occurred.");
+        }
+    }
+
+    // Called when the user clicks "Add to Cart" button for a product
+    private async Task AddOrderItem(Product product)
+    {
+        var authState = await _AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var authenticated = user.Identity is not null && user.Identity.IsAuthenticated;
+
+        if (!authenticated)
+        {
+            _NavigationManager.NavigateTo("account/login");
+            return;
+        }
+
+        var userId = user.FindFirst(u => u.Type.Contains("nameidentifier"))?.Value;
+
+        
+        var message = new AddToCartMessage
+            {
+                UserId = userId,
+                ProductId = product.Id,
+                Quantity = 1
+            };
+
+        // Decoupled logic via message handler
+        await ProcessAddToCartMessageAsync(message);
     }
 
 
