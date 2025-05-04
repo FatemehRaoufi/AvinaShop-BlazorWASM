@@ -1,6 +1,6 @@
 ﻿@using System.Globalization
 @using AvinaShop.Data
-
+@using AvinaShop.Utility.Enums
 <!-- Render the cart items -->
 @foreach (var cartItem in Items)
 {
@@ -29,9 +29,10 @@
                             <i class="bi bi-plus-circle-fill btn text-secondary"></i>
                         </span>
                     </div>
-                    <button class="btn btn-danger" @onclick="()=>UpdateItem(cartItem.ProductId, -10000)">
+                    <button class="btn btn-danger" @onclick="()=>UpdateItem(cartItem.ProductId, (int)CartActionType.Remove)">
                         Remove
                     </button>
+
                 </div>
             </div>
         </div>

@@ -1,41 +1,29 @@
 ﻿@page "/cart"
+
 @using Microsoft.AspNetCore.Authorization
 @using System.Globalization
 @using AvinaShop.Data
-@using AvinaShop.Repository.IRepository
 @using AvinaShop.Services
 @using AvinaShop.Utility
 @using AvinaShop.Helpers
-
-<!--  Authentication Services -->
+@using AvinaShop.Services.OrderServices
+@using AvinaShop.Services.ShoppingCartServices
+@using AvinaShop.Utility.Enums
+<!-- Authentication Services -->
 @inject AuthenticationStateProvider _authenticationStateProvider
 
 <!-- Cart, Order and Payment Services -->
-@inject IShoppingCartRepository _shoppingCartRepository
-@inject IOrderRepository _orderRepository
+@inject IShoppingCartService _shoppingCartService
+@inject IOrderService _orderService
 @inject PaymentService _paymentService
 
-<!-- UI  Services -->
+<!-- UI Services -->
 @inject NavigationManager _navigationManager
 @inject SharedStateService _sharedStateService
 @inject LoadingService _loadingService
 
 <!-- Apply the Authorize attribute to enforce user authentication -->
 @attribute [Authorize]
-
-
-
-@* @if (IsProcessing)
-{
-    <div class="position-absolute w-100 vh-100 d-flex flex-column align-items-center bg-white justify-content-center">
-        <img src="/images/loading.gif" alt="Loading..." />
-    </div>
-}
-else
-{ @if (ShoppingCarts.Any()){...}} *@
-
-
-
 
 @if (ShoppingCarts.Any())
 {
@@ -67,7 +55,6 @@ else
     </div>
 }
 
-
 @code {
     private const int RemoveItemCode = -10000; // Special code for removing item from the cart
     private readonly CultureInfo _usCulture = CultureInfo.GetCultureInfo("en-us"); // US culture for currency formatting
@@ -88,22 +75,6 @@ else
     }
 
     // After the component has rendered, load the cart items
-    /*
-      private bool IsProcessing { get; set; } = true; // Flag for processing state
-
-      protected override async Task OnAfterRenderAsync(bool firstRender)
-         {
-             if (firstRender)
-             {
-                 await LoadCartAsync(); // Load the cart data for the user
-                 IsProcessing = false;
-                 StateHasChanged(); // Refresh the UI
-             }
-         }
-         */
-
-    // The above code is replaced with the _loadingService and LoadingSpinner component
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -111,16 +82,14 @@ else
             _loadingService.Show();
             await LoadCartAsync();
             _loadingService.Hide();
-
             StateHasChanged();
         }
     }
 
-
-    // Load cart items from the repository using the helper
+    // Load cart items from the service using the helper
     private async Task LoadCartAsync()
     {
-        ShoppingCarts = await CartHelper.LoadCartAsync(_shoppingCartRepository, OrderHeader.UserId); // Use helper to load cart
+        ShoppingCarts = await _shoppingCartService.GetUserCartAsync(OrderHeader.UserId); // Use service to load cart
         OrderHeader.OrderTotal = CartHelper.CalculateTotalAmount(ShoppingCarts); // Calculate total amount
         TotalItems = CartHelper.CalculateTotalItems(ShoppingCarts); // Calculate total items
     }
@@ -129,35 +98,26 @@ else
     private async Task UpdateCartItem(Tuple<int, int> itemUpdate)
     {
         var productId = itemUpdate.Item1;
-        var updateBy = itemUpdate.Item2;
+        //var updateBy = itemUpdate.Item2;
+        var action = (CartActionType)itemUpdate.Item2;
+        if (action == CartActionType.Remove)
+        {
+            await _shoppingCartService.RemoveItemFromCartAsync(OrderHeader.UserId, productId);
+        }
+        else
+        {
+            await _shoppingCartService.UpdateItemQuantityAsync(OrderHeader.UserId, productId, (int)action);
+        }
 
-        await CartHelper.UpdateCartItemAsync(_shoppingCartRepository, OrderHeader.UserId, productId, updateBy);// Update the cart using helper method
+        // Update global cart count
+        _sharedStateService.TotalCartCount = await _shoppingCartService.GetCartItemCountAsync(OrderHeader.UserId);
 
-        _sharedStateService.TotalCartCount = await _shoppingCartRepository.GetTotalCartCartCountAsync(OrderHeader.UserId);// Update the global cart count and reload cart data
-        
-        await LoadCartAsync(); // Reload cart data
+        // Reload cart items and totals
+        await LoadCartAsync();
     }
 
+
     // Process the order and create a Stripe checkout session
-    /*  private async Task ProcessOrderCreation()
-          {
-              IsProcessing = true;
-              await Task.Yield();
-
-              OrderHeader.OrderDetails = AppConstants.ConvertShoppingCartListToOrderDetail(ShoppingCarts.ToList());
-
-              var session = _paymentService.CreateStripeCheckoutSession(OrderHeader);
-              OrderHeader.SessionId = session.Id;
-
-              await _orderRepository.CreateAsync(OrderHeader);
-
-              _navigationManager.NavigateTo(session.Url);
-          }
-
-    */
-
-    // Code Review: The above code is replaced with the _loadingService and LoadingSpinner component
-
     private async Task ProcessOrderCreation()
     {
         _loadingService.Show();
@@ -167,11 +127,9 @@ else
         var session = _paymentService.CreateStripeCheckoutSession(OrderHeader);
         OrderHeader.SessionId = session.Id;
 
-        await _orderRepository.CreateAsync(OrderHeader);
+        await _orderService.CreateOrderAsync(OrderHeader);
         _loadingService.Hide();
 
         _navigationManager.NavigateTo(session.Url);
-
-
     }
 }

@@ -1,118 +1,189 @@
-﻿using AvinaShop.Data;
-using AvinaShop.Repository;
-using Microsoft.EntityFrameworkCore;
+﻿using AvinaShop.Repository;
+using AvinaShop.Data;
+using Moq;
 using Xunit;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace AvinaShop.Tests.Repositories
+namespace AvinaShop.Tests.Repository
 {
     public class ShoppingCartRepositoryTests
     {
-        private readonly ApplicationDbContext _context;
-        private readonly ShoppingCartRepository _repository;
+        private readonly Mock<DbSet<ShoppingCart>> _mockShoppingCartDbSet;
+        private readonly Mock<ApplicationDbContext> _mockDbContext;
+        private readonly ShoppingCartRepository _shoppingCartRepository;
 
         public ShoppingCartRepositoryTests()
         {
-            // Set up an in-memory database for isolated, repeatable tests
-            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase(databaseName: "TestDb_" + Guid.NewGuid()) // Ensure unique DB per test class instance
-                .Options;
+            // Mock DbSet for ShoppingCart
+            _mockShoppingCartDbSet = new Mock<DbSet<ShoppingCart>>();
 
-            _context = new ApplicationDbContext(options);
-            _repository = new ShoppingCartRepository(_context);
-        }
+            // Mock the ApplicationDbContext
+            _mockDbContext = new Mock<ApplicationDbContext>();
+            _mockDbContext.Setup(m => m.ShoppingCart).Returns(_mockShoppingCartDbSet.Object);
 
-        // Helper method (optional): returns all cart items for a user
-        public async Task<IEnumerable<ShoppingCart>> GetAllAsync(string? userId)
-        {
-            if (string.IsNullOrEmpty(userId))
-                return Enumerable.Empty<ShoppingCart>();
-
-            return await _context.ShoppingCart
-                .Where(cart => cart.UserId == userId)
-                .ToListAsync();
+            // Initialize the repository with the mock DbContext
+            _shoppingCartRepository = new ShoppingCartRepository(_mockDbContext.Object);
         }
 
         [Fact]
-        public async Task GetTotalCartCartCountAsync_Should_Return_Total_Count_For_User()
+        public async Task GetItemsAsync_ReturnsShoppingCartItems_WhenUserIdIsValid()
         {
-            // Arrange: Add multiple items to the user's cart
-            var userId = "user1";
-            _context.ShoppingCart.AddRange(
+            // Arrange
+            var userId = "user123";
+            var shoppingCarts = new List<ShoppingCart>
+            {
                 new ShoppingCart { UserId = userId, ProductId = 1, Count = 2 },
                 new ShoppingCart { UserId = userId, ProductId = 2, Count = 3 }
-            );
-            await _context.SaveChangesAsync();
+            }.AsQueryable();
 
-            // Act: Get total item count for user
-            var result = await _repository.GetTotalCartCartCountAsync(userId);
+            var mockDbSet = shoppingCarts.BuildMockDbSet();
+            _mockDbContext.Setup(x => x.ShoppingCart.Where(It.IsAny<System.Linq.Expressions.Expression<System.Func<ShoppingCart, bool>>>())).Returns(mockDbSet.Object);
 
-            // Assert: Verify total count is correct
-            Assert.Equal(5, result);
+            // Act
+            var result = await _shoppingCartRepository.GetItemsAsync(userId);
+
+            // Assert
+            Assert.Equal(2, result.Count()); // Check that two items are returned
+            Assert.Equal(userId, result.First().UserId); // Check that the user ID matches
         }
 
         [Fact]
-        public async Task UpdateCartAsync_Should_Add_New_Item_If_Not_Exists()
+        public async Task AddItemToCartAsync_ReturnsFalse_WhenItemExists()
         {
-            // Arrange: No item in cart yet
-            var userId = "user1";
+            // Arrange
+            var userId = "user123";
             var productId = 1;
-            var updateBy = 2;
+            var count = 5;
 
-            // Act: Add new item
-            var result = await _repository.UpdateCartAsync(userId, productId, updateBy);
+            var shoppingCart = new ShoppingCart { UserId = userId, ProductId = productId, Count = count };
 
-            // Assert: Item should be added with correct count
-            Assert.True(result);
-            var cartItem = _context.ShoppingCart.FirstOrDefault(c => c.UserId == userId && c.ProductId == productId);
-            Assert.NotNull(cartItem);
-            Assert.Equal(updateBy, cartItem.Count);
+            var shoppingCarts = new List<ShoppingCart> { shoppingCart }.AsQueryable();
+            var mockDbSet = shoppingCarts.BuildMockDbSet();
+            _mockDbContext.Setup(m => m.ShoppingCart).Returns(mockDbSet.Object);
+
+            // Act
+            var result = await _shoppingCartRepository.AddItemToCartAsync(userId, productId, count);
+
+            // Assert
+            Assert.False(result); // It should return false because the item already exists
         }
 
         [Fact]
-        public async Task UpdateCartAsync_Should_Update_Existing_Item()
+        public async Task AddItemToCartAsync_ReturnsTrue_WhenItemIsNew()
         {
-            // Arrange: Item already exists with count = 2
-            var userId = "user1";
+            // Arrange
+            var userId = "user123";
             var productId = 1;
-            _context.ShoppingCart.Add(new ShoppingCart { UserId = userId, ProductId = productId, Count = 2 });
-            await _context.SaveChangesAsync();
+            var count = 5;
 
-            // Act: Update item count by +3
-            var result = await _repository.UpdateCartAsync(userId, productId, 3);
+            var shoppingCarts = new List<ShoppingCart>().AsQueryable();
+            var mockDbSet = shoppingCarts.BuildMockDbSet();
+            _mockDbContext.Setup(m => m.ShoppingCart).Returns(mockDbSet.Object);
 
-            // Assert: Count should now be 5
-            Assert.True(result);
-            var cartItem = _context.ShoppingCart.FirstOrDefault(c => c.UserId == userId && c.ProductId == productId);
-            Assert.NotNull(cartItem);
-            Assert.Equal(5, cartItem.Count);
+            // Act
+            var result = await _shoppingCartRepository.AddItemToCartAsync(userId, productId, count);
+
+            // Assert
+            Assert.True(result); // It should return true because the item is added
         }
 
         [Fact]
-        public async Task UpdateCartAsync_Should_Remove_Item_If_Count_Becomes_Zero()
+        public async Task IncreaseItemQuantityAsync_ReturnsTrue_WhenItemIsUpdated()
         {
-            // Arrange: Item with count = 2 exists
-            var userId = "user1";
+            // Arrange
+            var userId = "user123";
             var productId = 1;
-            _context.ShoppingCart.Add(new ShoppingCart { UserId = userId, ProductId = productId, Count = 2 });
-            await _context.SaveChangesAsync();
+            var increaseAmount = 2;
 
-            // Act: Reduce count by -2 → should result in removal
-            var result = await _repository.UpdateCartAsync(userId, productId, -2);
+            var shoppingCart = new ShoppingCart { UserId = userId, ProductId = productId, Count = 5 };
+            var shoppingCarts = new List<ShoppingCart> { shoppingCart }.AsQueryable();
 
-            // Assert: Item should be removed
-            Assert.True(result);
-            var cartItem = _context.ShoppingCart.FirstOrDefault(c => c.UserId == userId && c.ProductId == productId);
-            Assert.Null(cartItem);
+            var mockDbSet = shoppingCarts.BuildMockDbSet();
+            _mockDbContext.Setup(m => m.ShoppingCart).Returns(mockDbSet.Object);
+
+            // Act
+            var result = await _shoppingCartRepository.IncreaseItemQuantityAsync(userId, productId, increaseAmount);
+
+            // Assert
+            Assert.True(result); // It should return true as the quantity is increased
+            Assert.Equal(7, shoppingCart.Count); // Check if the quantity is updated correctly
         }
 
         [Fact]
-        public async Task UpdateCartAsync_Should_Return_False_If_UserId_Is_Null()
+        public async Task DecreaseItemQuantityAsync_ReturnsFalse_WhenItemDoesNotExist()
         {
-            // Act: Try updating cart without a user ID
-            var result = await _repository.UpdateCartAsync(null, 1, 2);
+            // Arrange
+            var userId = "user123";
+            var productId = 1;
+            var decreaseAmount = 2;
 
-            // Assert: Should return false due to invalid input
-            Assert.False(result);
+            var shoppingCarts = new List<ShoppingCart>().AsQueryable();
+            var mockDbSet = shoppingCarts.BuildMockDbSet();
+            _mockDbContext.Setup(m => m.ShoppingCart).Returns(mockDbSet.Object);
+
+            // Act
+            var result = await _shoppingCartRepository.DecreaseItemQuantityAsync(userId, productId, decreaseAmount);
+
+            // Assert
+            Assert.False(result); // Should return false as the item doesn't exist
+        }
+
+        [Fact]
+        public async Task RemoveItemFromCartAsync_ReturnsTrue_WhenItemIsRemoved()
+        {
+            // Arrange
+            var userId = "user123";
+            var productId = 1;
+
+            var shoppingCart = new ShoppingCart { UserId = userId, ProductId = productId, Count = 5 };
+            var shoppingCarts = new List<ShoppingCart> { shoppingCart }.AsQueryable();
+
+            var mockDbSet = shoppingCarts.BuildMockDbSet();
+            _mockDbContext.Setup(m => m.ShoppingCart).Returns(mockDbSet.Object);
+
+            // Act
+            var result = await _shoppingCartRepository.RemoveItemFromCartAsync(userId, productId);
+
+            // Assert
+            Assert.True(result); // Should return true because the item is removed
+        }
+
+        [Fact]
+        public async Task ClearCartAsync_ReturnsTrue_WhenCartIsCleared()
+        {
+            // Arrange
+            var userId = "user123";
+            var shoppingCarts = new List<ShoppingCart>
+            {
+                new ShoppingCart { UserId = userId, ProductId = 1, Count = 2 },
+                new ShoppingCart { UserId = userId, ProductId = 2, Count = 3 }
+            }.AsQueryable();
+
+            var mockDbSet = shoppingCarts.BuildMockDbSet();
+            _mockDbContext.Setup(m => m.ShoppingCart).Returns(mockDbSet.Object);
+
+            // Act
+            var result = await _shoppingCartRepository.ClearCartAsync(userId);
+
+            // Assert
+            Assert.True(result); // It should return true because the cart is cleared
+        }
+
+        // Helper method to mock DbSet
+        public static class MockDbSetExtension
+        {
+            public static Mock<DbSet<T>> BuildMockDbSet<T>(this IQueryable<T> source) where T : class
+            {
+                var mockDbSet = new Mock<DbSet<T>>();
+                mockDbSet.As<IQueryable<T>>().Setup(m => m.Provider).Returns(source.Provider);
+                mockDbSet.As<IQueryable<T>>().Setup(m => m.Expression).Returns(source.Expression);
+                mockDbSet.As<IQueryable<T>>().Setup(m => m.ElementType).Returns(source.ElementType);
+                mockDbSet.As<IQueryable<T>>().Setup(m => m.GetEnumerator()).Returns(source.GetEnumerator());
+                return mockDbSet;
+            }
         }
     }
 }

@@ -113,7 +113,7 @@
 		var user = authState.User;
 
 		_sharedstateService.TotalCartCount =
-			await _shoppingCartRepository.GetTotalCartCartCountAsync(
+			await _shoppingCartRepository.GetTotalCartCountAsync(
 				user?.FindFirst(u => u.Type.Contains("nameidentifier"))?.Value
 			);
 	}

@@ -114,6 +114,10 @@ namespace AvinaShop.Services.OrderServices
         {
             return user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
         }
+        public async Task CreateOrderAsync(OrderHeader orderHeader)
+        {
+            await _orderRepository.CreateAsync(orderHeader);
+        }
     }
 }
 

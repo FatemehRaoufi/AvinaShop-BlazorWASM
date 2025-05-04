@@ -26,5 +26,14 @@ namespace AvinaShop.Services.OrderServices
         /// <param name="sessionId">The session ID related to the status change.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
         Task UpdateOrderStatusAsync(int id, string status, string sessionId);
+
+        /// <summary>
+        /// Creates a new order based on the provided order header and associated details.
+        /// </summary>
+        /// <param name="orderHeader">The order header containing user information, items, and total amount.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        Task CreateOrderAsync(OrderHeader orderHeader);
+
+        
     }
 }

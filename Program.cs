@@ -4,7 +4,9 @@ using AvinaShop.Data;
 using AvinaShop.Repository;
 using AvinaShop.Repository.IRepository;
 using AvinaShop.Services;
+using AvinaShop.Services.AuthenticationService;
 using AvinaShop.Services.OrderServices;
+using AvinaShop.Services.ShoppingCartServices;
 using AvinaShop.Services.UserServices;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -12,26 +14,38 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register Razor components and enable interactive rendering
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+#region Dependency Injection - Service Registrations
 
-// Configure authentication state management for Blazor components
+// Core Blazor Services
+builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+
+// Authentication State Management
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-// Register repositories for dependency injection (DI)
+// Authentication and Authorization Services
+builder.Services.AddScoped<IUserRoleService, UserRoleService>();
+builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+
+// Data Repositories
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
-builder.Services.AddScoped<SharedStateService>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+
+// Business Logic Services
 builder.Services.AddScoped<PaymentService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
+
+// UI State Services
+builder.Services.AddScoped<SharedStateService>();
 builder.Services.AddSingleton<LoadingService>();
+
+#endregion
+
 
 #region RoleManagement Injection
 
