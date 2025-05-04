@@ -92,7 +92,7 @@ private async Task<ClaimsPrincipal> GetCurrentUserAsync()
     return authState.User;
 }
 ```
-## 🔐 AuthenticationService – Authentication Handling with Claims
+### 🔐 AuthenticationService – Authentication Handling with Claims
 
 The `AuthenticationService` class is responsible for managing authentication-related operations, such as checking if a user is authenticated and retrieving the user's ID. It utilizes `AuthenticationStateProvider` to retrieve the user's authentication state and work with claims for user identification.
 
