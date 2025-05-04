@@ -92,3 +92,44 @@ private async Task<ClaimsPrincipal> GetCurrentUserAsync()
     return authState.User;
 }
 ```
+### 🔐 AuthenticationService – Authentication Handling with Claims
+
+The `AuthenticationService` class is responsible for managing authentication-related operations, such as checking if a user is authenticated and retrieving the user's ID. It utilizes `AuthenticationStateProvider` to retrieve the user's authentication state and work with claims for user identification.
+
+### Key Features:
+- **User Authentication Check**:  
+  Asynchronously checks if the current user is authenticated by verifying the authentication state.
+
+- **User ID Retrieval**:  
+  Retrieves the user's unique ID (`NameIdentifier`) from the authentication claims, allowing for user-specific functionality.
+
+### Code Highlights:
+
+**Check if the User is Authenticated:**
+```csharp
+public async Task<bool> IsAuthenticatedAsync()
+{
+    var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+
+    if (authState.User.Identity == null)
+    {
+        return false;
+    }
+    return authState.User.Identity.IsAuthenticated;
+}
+```
+Retrieve the User ID from Claims:
+
+```csharp
+public async Task<string> GetUserIdAsync()
+{
+    var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+    var nameIdentifierClaim = authState.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier);
+
+    if (nameIdentifierClaim != null)
+    {
+        return nameIdentifierClaim.Value;
+    }
+    return null;
+}
+```
