@@ -39,3 +39,56 @@ AvinaShop is an e-commerce web application built using Blazor WebAssembly (WASM)
 
 ## Testing
 The project includes a Test Project built with xUnit, focusing on testing the repository methods to ensure that the data access logic is functioning correctly.
+
+
+## 🔧 Implementation Details
+
+### 🛒 OrderService – Order Management with Role-Based Access
+
+The `OrderService` class is responsible for managing order-related operations such as retrieving and updating orders. It leverages `ClaimsPrincipal` to identify the currently authenticated user and adjusts access based on the user's role.
+
+### Key Features:
+- **Role-Based Order Retrieval**:  
+  - **Admin users** can view all orders.  
+  - **Regular users** can only view their own orders.
+  
+- **Claims-Based User Identification**:  
+  Retrieves the current user's ID using `ClaimTypes.NameIdentifier` from the `ClaimsPrincipal`.
+
+- **Status Update Support**:  
+  Allows updating order status along with an optional session ID for tracking.
+
+### Code Highlights:
+
+**Retrieve Orders Based on Role:**
+```csharp
+public async Task<IEnumerable<OrderHeader>> GetOrderHeadersAsync()
+{
+    var user = await GetCurrentUserAsync();
+
+    if (user.IsInRole(AppConstants.Role_Admin))
+    {
+        return await GetAllOrdersAsync();
+    }
+
+    var userId = GetUserId(user);
+    return await GetUserOrdersAsync(userId);
+}
+```
+Get Current User ID Using Claims:
+
+```csharp
+private string GetUserId(ClaimsPrincipal user)
+{
+    return user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+}
+```
+Authentication Integration:
+
+```csharp
+private async Task<ClaimsPrincipal> GetCurrentUserAsync()
+{
+    var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
+    return authState.User;
+}
+```
