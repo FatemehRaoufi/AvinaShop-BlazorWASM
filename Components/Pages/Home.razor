@@ -23,95 +23,95 @@
 
 <PageTitle>Home</PageTitle>
 
-    <!-- Main page content -->
-    <div class="container-fluid px-0 m-0 full-width">
-        <div class="jumbotron-custom">
-            <div class="m-auto d-flex align-items-center" style="width: 400px; height: 50vh;">
+<!-- Main page content -->
+<div class="container-fluid px-0 m-0 full-width">
+    <div class="jumbotron-custom">
+        <div class="m-auto d-flex align-items-center" style="width: 400px; height: 50vh;">
 
-                <div class="d-flex align-items-center" style="width: 100%;">
-                    <input type="text" class="form-control rounded-pill"
-                           @bind:event="oninput" @bind:get="_searchText" @bind:set="FilterProductByName"
-                    placeholder="Search for Elektronik Items!"
-                    style="width: 100%; padding: 20px;">
-                    <span style="position: relative; left: -43px;"><i class="bi bi-search"></i></span>
-                </div>
-            </div>
-        </div>
-    <!-- Navigation for product categories -->
-        <div class="content px-4 m-2">
-            <ul class="nav nav-underline justify-content-center mb-2">
-                <li class="nav-item">
-                    <span class="nav-link @GetActiveTabClass(0)" href="#" style="cursor: pointer" @onclick="()=>FilterProducts(0)">All</span>
-                </li>
-                @foreach (var category in Categories)
-                {
-                    <li class="nav-item">
-                        <span class="nav-link @GetActiveTabClass(category.Id)" href="#" style="cursor: pointer" 
-                        @onclick="()=>FilterProducts(category.Id)">
-                            @category.Name
-                        </span>
-                    </li>
-                }
-                
-            </ul>
-            <div class="row mt-4 mx-1">
-                @if (hasMoreProducts)
-                {
-                    <div class="text-center my-4">
-                        @if (isLoadingMore)
-                        {
-                            <p>Loading more products...</p>
-                        }
-                        else
-                        {
-                            <button class="btn btn-outline-primary" @onclick="LoadMoreAsync">Load More</button>
-                        }
-                    </div>
-                }
-
-                @foreach (var prod in FilteredProducts)
-                {
-                    <div class="col-12 col-md-6 col-lg-4 pe-3 mb-5">
-                        <div class="card">
-                            <div class="mt-3 mb-2 row">
-                                <div class="col-6 px-3">
-                                    @if(!string.IsNullOrEmpty(prod.SpecialTag))
-                                    {
-                                        <i class="bi bi-star btn btn-outline-success disabled"> @prod.SpecialTag</i>
-                                    }
-                                </div>
-                                <div class="col-6 text-end text-danger px-3 h3">
-                                    @prod.Price.ToString("C", CultureInfo.GetCultureInfo("en-us"))
-                                </div>
-                            </div>
-                            <div class="text-center">
-                                @if (!string.IsNullOrEmpty(prod.ImageUrl))
-                                {
-                                    <img class="card-img-top img-thumbnail img-rounded w-50 mt-2" src="@prod.ImageUrl" />
-                                }
-                                else
-                                {
-                                    <img class="card-img-top img-thumbnail img-rounded w-50 mt-2" src="images/default.png" style=""/>
-                                }
-
-                            </div>
-                            <div class="card-body">
-                                <h5 class="card-title text-center lead text-success">@prod.Name</h5>
-                                <p class="card-text mt-2">@((MarkupString)@prod.Description)</p>
-                                <h4 class="text-center">
-                                    <div class="m-lg-auto p-2" @onclick="()=>AddOrderItem(prod)">
-                                    <i class="bi bi-cart3 btn btn-success text-right  px-5 form-control" > Add to cart</i>
-                                    </div>
-                                </h4>
-                               
-
-                            </div>
-                        </div>
-                    </div>
-                }
+            <div class="d-flex align-items-center" style="width: 100%;">
+                <input type="text" class="form-control rounded-pill"
+                @bind:event="oninput" @bind:get="_searchText" @bind:set="FilterProductByName"
+                placeholder="Search for Elektronik Items!"
+                style="width: 100%; padding: 20px;">
+                <span style="position: relative; left: -43px;"><i class="bi bi-search"></i></span>
             </div>
         </div>
     </div>
+    <!-- Navigation for product categories -->
+    <div class="content px-4 m-2">
+        <ul class="nav nav-underline justify-content-center mb-2">
+            <li class="nav-item">
+                <span class="nav-link @GetActiveTabClass(0)" href="#" style="cursor: pointer" @onclick="()=>FilterProducts(0)">All</span>
+            </li>
+            @foreach (var category in Categories)
+            {
+                <li class="nav-item">
+                    <span class="nav-link @GetActiveTabClass(category.Id)" href="#" style="cursor: pointer" 
+                    @onclick="()=>FilterProducts(category.Id)">
+                        @category.Name
+                    </span>
+                </li>
+            }
+
+        </ul>
+        <div class="row mt-4 mx-1">
+            @if (hasMoreProducts)
+            {
+                <div class="text-center my-4">
+                    @if (isLoadingMore)
+                    {
+                        <p>Loading more products...</p>
+                    }
+                    else
+                    {
+                        <button class="btn btn-outline-primary" @onclick="LoadMoreAsync">Load More</button>
+                    }
+                </div>
+            }
+
+            @foreach (var prod in FilteredProducts)
+            {
+                <div class="col-12 col-md-6 col-lg-4 pe-3 mb-5">
+                    <div class="card">
+                        <div class="mt-3 mb-2 row">
+                            <div class="col-6 px-3">
+                                @if(!string.IsNullOrEmpty(prod.SpecialTag))
+                                {
+                                    <i class="bi bi-star btn btn-outline-success disabled"> @prod.SpecialTag</i>
+                                }
+                            </div>
+                            <div class="col-6 text-end text-danger px-3 h3">
+                                @prod.Price.ToString("C", CultureInfo.GetCultureInfo("en-us"))
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            @if (!string.IsNullOrEmpty(prod.ImageUrl))
+                            {
+                                <img class="card-img-top img-thumbnail img-rounded w-50 mt-2" src="@prod.ImageUrl" />
+                            }
+                            else
+                            {
+                                <img class="card-img-top img-thumbnail img-rounded w-50 mt-2" src="images/default.png" style=""/>
+                            }
+
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title text-center lead text-success">@prod.Name</h5>
+                            <p class="card-text mt-2">@((MarkupString)@prod.Description)</p>
+                            <h4 class="text-center">
+                                <div class="m-lg-auto p-2" @onclick="()=>AddOrderItem(prod)">
+                                    <i class="bi bi-cart3 btn btn-success text-right  px-5 form-control" > Add to cart</i>
+                                </div>
+                            </h4>
+
+
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
 
 
 @code{
@@ -121,7 +121,7 @@
 
     private int _selectedCategoryId = 0; // Currently selected category ID
     private string _searchText = ""; // Search input value
-    
+
     // Pagination state
     private int pageSize = 9;
     private int currentPage = 1;
@@ -181,8 +181,8 @@
         return categoryId == _selectedCategoryId ? "active" : string.Empty;
     }
 
-  // Loads products from repository (mocked pagination on client)
-  
+    // Loads products from repository (mocked pagination on client)
+
     private async Task LoadProducts(bool isInitial = true)
     {
         var allProducts = await _productRepository.GetAllAsync(); // Ideally should support pagination on server!
@@ -246,31 +246,72 @@
         }
     }
 
-    // Called when the user clicks "Add to Cart" button for a product
-    private async Task AddOrderItem(Product product)
+    //---------------------------------------------
+    // Checks whether the current user is authenticated
+    private async Task<bool> IsUserAuthenticatedAsync()
     {
         var authState = await _AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        var authenticated = user.Identity is not null && user.Identity.IsAuthenticated;
+        return user.Identity is not null && user.Identity.IsAuthenticated;
+    }
 
-        if (!authenticated)
+    // Navigates unauthenticated users to the login page
+    private void RedirectToLogin()
+    {
+        _NavigationManager.NavigateTo("account/login");
+    }
+
+    // Retrieves the currently authenticated user's ID
+    private string GetUserId()
+    {
+        var authState = _AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+        var user = authState.User;
+        return user.FindFirst(u => u.Type.Contains("nameidentifier"))?.Value;
+    }
+
+    // Attempts to add a product to the user's cart and update the cart state
+    private async Task AddToCartAsync(string userId, int productId, int quantity)
+    {
+        var result = await _cartRepository.UpdateCartAsync(userId, productId, quantity);
+
+        if (result)
         {
-            _NavigationManager.NavigateTo("account/login");
+            // Refresh cart count in shared UI state
+            _SharedStateService.TotalCartCount = await _cartRepository.GetTotalCartCartCountAsync(userId);
+            _jsRuntime?.ToastrSuccess("Product added to cart successfully");
+        }
+        else
+        {
+            _jsRuntime?.ToastrError("Error encountered while adding product to cart");
+        }
+    }
+
+    /// <summary>
+    /// Called when the user clicks "Add to Cart" button for a product
+    /// Coordinates the process of adding a product to the shopping cart
+    /// Redirects the user to the login page
+    /// </summary>
+    /// <param name="product"></param>
+    /// <returns></returns>
+    private async Task AddOrderItem(Product product)
+    {
+        // Guard clause: ensure user is logged in
+        if (!await IsUserAuthenticatedAsync())
+        {
+            RedirectToLogin();
             return;
         }
 
-        var userId = user.FindFirst(u => u.Type.Contains("nameidentifier"))?.Value;
+        // Retrieve user ID and validate it
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId))
+        {
+            _jsRuntime?.ToastrError("User ID not found.");
+            return;
+        }
 
-        
-        var message = new AddToCartMessage
-            {
-                UserId = userId,
-                ProductId = product.Id,
-                Quantity = 1
-            };
-
-        // Decoupled logic via message handler
-        await ProcessAddToCartMessageAsync(message);
+        // Proceed to add product to cart
+        await AddToCartAsync(userId, product.Id, 1);
     }
 
 
