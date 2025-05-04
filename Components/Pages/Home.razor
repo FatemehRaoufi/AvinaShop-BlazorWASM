@@ -3,21 +3,21 @@
 @using AvinaShop.Data
 @using AvinaShop.Repository.IRepository
 @using AvinaShop.Services
+@using AvinaShop.Services.AuthenticationService
 @using AvinaShop.Services.Extensions
 
-<!--  Authentication Services -->
-@inject AuthenticationStateProvider _AuthenticationStateProvider
+<!-- Authentication Services -->
+@inject IAuthenticationService _authenticationService
 
-<!--  Extension -->
-@inject IJSRuntime _jsRuntime
 
 <!-- Product and Cart Services -->
 @inject IProductRepository _productRepository
 @inject ICategoryRepository _categoryRepository
 @inject IShoppingCartRepository _cartRepository
 
-<!-- UI Services -->
+<!-- UI and JavaScript Services -->
 @inject NavigationManager _NavigationManager
+@inject IJSRuntime _jsRuntime
 @inject SharedStateService _SharedStateService
 @inject LoadingService _loadingService
 
@@ -27,12 +27,11 @@
 <div class="container-fluid px-0 m-0 full-width">
     <div class="jumbotron-custom">
         <div class="m-auto d-flex align-items-center" style="width: 400px; height: 50vh;">
-
             <div class="d-flex align-items-center" style="width: 100%;">
                 <input type="text" class="form-control rounded-pill"
-                @bind:event="oninput" @bind:get="_searchText" @bind:set="FilterProductByName"
-                placeholder="Search for Elektronik Items!"
-                style="width: 100%; padding: 20px;">
+                       @bind:event="oninput" @bind:get="_searchText" @bind:set="FilterProductByName"
+                       placeholder="Search for Elektronik Items!"
+                       style="width: 100%; padding: 20px;">
                 <span style="position: relative; left: -43px;"><i class="bi bi-search"></i></span>
             </div>
         </div>
@@ -46,13 +45,12 @@
             @foreach (var category in Categories)
             {
                 <li class="nav-item">
-                    <span class="nav-link @GetActiveTabClass(category.Id)" href="#" style="cursor: pointer" 
-                    @onclick="()=>FilterProducts(category.Id)">
+                    <span class="nav-link @GetActiveTabClass(category.Id)" href="#" style="cursor: pointer"
+                          @onclick="()=>FilterProducts(category.Id)">
                         @category.Name
                     </span>
                 </li>
             }
-
         </ul>
         <div class="row mt-4 mx-1">
             @if (hasMoreProducts)
@@ -75,7 +73,7 @@
                     <div class="card">
                         <div class="mt-3 mb-2 row">
                             <div class="col-6 px-3">
-                                @if(!string.IsNullOrEmpty(prod.SpecialTag))
+                                @if (!string.IsNullOrEmpty(prod.SpecialTag))
                                 {
                                     <i class="bi bi-star btn btn-outline-success disabled"> @prod.SpecialTag</i>
                                 }
@@ -91,20 +89,17 @@
                             }
                             else
                             {
-                                <img class="card-img-top img-thumbnail img-rounded w-50 mt-2" src="images/default.png" style=""/>
+                                <img class="card-img-top img-thumbnail img-rounded w-50 mt-2" src="images/default.png" style="" />
                             }
-
                         </div>
                         <div class="card-body">
                             <h5 class="card-title text-center lead text-success">@prod.Name</h5>
                             <p class="card-text mt-2">@((MarkupString)@prod.Description)</p>
                             <h4 class="text-center">
                                 <div class="m-lg-auto p-2" @onclick="()=>AddOrderItem(prod)">
-                                    <i class="bi bi-cart3 btn btn-success text-right  px-5 form-control" > Add to cart</i>
+                                    <i class="bi bi-cart3 btn btn-success text-right  px-5 form-control"> Add to cart</i>
                                 </div>
                             </h4>
-
-
                         </div>
                     </div>
                 </div>
@@ -113,8 +108,7 @@
     </div>
 </div>
 
-
-@code{
+@code {
     private IEnumerable<Product> Products = new List<Product>(); // Holds all products loaded from the repository
     private IEnumerable<Category> Categories = new List<Category>();// All product categories
     private IEnumerable<Product> FilteredProducts = new List<Product>(); // Filtered view of products for UI display
@@ -128,7 +122,7 @@
     private bool isLoadingMore = false;
     private bool hasMoreProducts = true;
 
-    // Called only once when the page renders for the first time (On first render, load products and categories) 
+    // Called only once when the page renders for the first time (On first render, load products and categories)
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -182,7 +176,6 @@
     }
 
     // Loads products from repository (mocked pagination on client)
-
     private async Task LoadProducts(bool isInitial = true)
     {
         var allProducts = await _productRepository.GetAllAsync(); // Ideally should support pagination on server!
@@ -250,9 +243,7 @@
     // Checks whether the current user is authenticated
     private async Task<bool> IsUserAuthenticatedAsync()
     {
-        var authState = await _AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        return user.Identity is not null && user.Identity.IsAuthenticated;
+        return await _authenticationService.IsAuthenticatedAsync();
     }
 
     // Navigates unauthenticated users to the login page
@@ -262,11 +253,9 @@
     }
 
     // Retrieves the currently authenticated user's ID
-    private string GetUserId()
+    private async Task<string> GetUserIdAsync()
     {
-        var authState = _AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
-        var user = authState.User;
-        return user.FindFirst(u => u.Type.Contains("nameidentifier"))?.Value;
+        return await _authenticationService.GetUserIdAsync();
     }
 
     // Attempts to add a product to the user's cart and update the cart state
@@ -289,7 +278,7 @@
     /// <summary>
     /// Called when the user clicks "Add to Cart" button for a product
     /// Coordinates the process of adding a product to the shopping cart
-    /// Redirects the user to the login page
+    /// Redirects the user to the login page if not authenticated
     /// </summary>
     /// <param name="product"></param>
     /// <returns></returns>
@@ -303,7 +292,7 @@
         }
 
         // Retrieve user ID and validate it
-        var userId = GetUserId();
+        var userId = await GetUserIdAsync();
         if (string.IsNullOrEmpty(userId))
         {
             _jsRuntime?.ToastrError("User ID not found.");
@@ -313,6 +302,4 @@
         // Proceed to add product to cart
         await AddToCartAsync(userId, product.Id, 1);
     }
-
-
-}   
+}
